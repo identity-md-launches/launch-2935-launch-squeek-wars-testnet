@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
+import {GameErrors as E} from "../src/libraries/GameErrors.sol";
 import {GameTest} from "./helpers/GameTest.sol";
 import {EndgameTest} from "./helpers/EndgameTest.sol";
 import {MockCore} from "./helpers/Mocks.sol";
@@ -11,10 +12,10 @@ import {Army} from "../src/Army.sol";
 /// @notice Independent adversarial checks of SeedLedger failure paths and the owner's only powers.
 contract LedgerEdgeTest is GameTest {
     function testRegisterRejectsZeroAndDuplicateInEveryNamespace() public {
-        vm.expectRevert("Already registered or invalid player");
+        vm.expectRevert(E.AlreadyRegisteredOrInvalidPlayer.selector);
         ledger.register(address(0));
         vm.prank(address(game));
-        vm.expectRevert("Already registered or invalid player");
+        vm.expectRevert(E.AlreadyRegisteredOrInvalidPlayer.selector);
         ledger.register(alice);
         // A foreign namespace may register the same wallet, but it never touches the canonical account.
         vm.prank(outsider);
@@ -31,13 +32,13 @@ contract LedgerEdgeTest is GameTest {
         ledger.burn(outsider, 1500 * U + 1);
         ledger.burn(outsider, 1500 * U);
         assertEq(ledger.balanceOf(outsider, outsider), 0);
-        vm.expectRevert("Invalid refund");
+        vm.expectRevert(E.InvalidRefund.selector);
         ledger.refund(outsider, 1500 * U + 1);
         ledger.refund(outsider, 1500 * U);
         // Canonical players are not accounts of the outsider's namespace.
         vm.expectRevert(SeedLedger.InsufficientSeed.selector);
         ledger.burn(alice, 0);
-        vm.expectRevert("Invalid refund");
+        vm.expectRevert(E.InvalidRefund.selector);
         ledger.refund(alice, 0);
         vm.expectRevert(SeedLedger.NoClaim.selector);
         ledger.claim(alice);
@@ -46,7 +47,7 @@ contract LedgerEdgeTest is GameTest {
         assertEq(ledger.burned(address(game)), 0);
         // Even the canonical namespace cannot refund more than it ever burned.
         vm.prank(address(game));
-        vm.expectRevert("Invalid refund");
+        vm.expectRevert(E.InvalidRefund.selector);
         ledger.refund(alice, 1);
     }
 
@@ -167,9 +168,9 @@ contract LedgerEdgeTest is GameTest {
     }
 
     function testWheelIntegralRejectsInvalidQueries() public {
-        vm.expectRevert("Invalid integral query");
+        vm.expectRevert(E.InvalidIntegralQuery.selector);
         ledger.wheelIntegral(11, block.timestamp);
-        vm.expectRevert("Invalid integral query");
+        vm.expectRevert(E.InvalidIntegralQuery.selector);
         ledger.wheelIntegral(1, block.timestamp + 1);
         assertEq(ledger.wheelIntegral(0, block.timestamp), 0);
         assertEq(ledger.wheelIntegral(5, 0), 0);
@@ -193,13 +194,13 @@ contract VillageEdgeTest is EndgameTest {
             game.found(bad[i]);
         }
         vm.prank(d);
-        vm.expectRevert("Invalid name character");
+        vm.expectRevert(E.InvalidNameCharacter.selector);
         game.found("a-b");
         vm.prank(d);
-        vm.expectRevert("Invalid name length");
+        vm.expectRevert(E.InvalidNameLength.selector);
         game.found("ab");
         vm.prank(d);
-        vm.expectRevert("Name taken");
+        vm.expectRevert(E.NameTaken.selector);
         game.found("aLiCe");
         _found(carol, "c_9");
         _found(d, "ABCDEFGHIJKLMNOP");
@@ -211,27 +212,27 @@ contract VillageEdgeTest is EndgameTest {
 
     function testBuildOrderRejections() public {
         vm.startPrank(alice);
-        vm.expectRevert("Invalid build slot");
+        vm.expectRevert(E.InvalidBuildSlot.selector);
         game.orderBuild(19, 0);
-        vm.expectRevert("Invalid build slot");
+        vm.expectRevert(E.InvalidBuildSlot.selector);
         game.orderBuild(0, 2);
-        vm.expectRevert("Field capped by Town Hall");
+        vm.expectRevert(E.FieldCappedByTownHall.selector);
         game.orderBuild(0, 0);
-        vm.expectRevert("Building capped by Town Hall");
+        vm.expectRevert(E.BuildingCappedByTownHall.selector);
         game.orderBuild(8 + G.WALLS, 0);
-        vm.expectRevert("Research Vault first");
+        vm.expectRevert(E.ResearchVaultFirst.selector);
         game.orderBuild(8 + G.VAULT, 0);
-        vm.expectRevert("Research tier 2 first");
+        vm.expectRevert(E.ResearchTier2First.selector);
         game.orderBuild(8 + G.FORGE, 0);
-        vm.expectRevert("Research tier 2 first");
+        vm.expectRevert(E.ResearchTier2First.selector);
         game.orderBuild(8 + G.CLAN, 0);
         game.orderBuild(8 + G.TH, 0);
-        vm.expectRevert("Already building target");
+        vm.expectRevert(E.AlreadyBuildingTarget.selector);
         game.orderBuild(8 + G.TH, 1);
-        vm.expectRevert("Invalid build slot");
+        vm.expectRevert(E.InvalidBuildSlot.selector);
         game.orderBuild(8 + G.BARRACKS, 0);
         game.orderBuild(8 + G.BARRACKS, 1);
-        vm.expectRevert("Invalid build slot");
+        vm.expectRevert(E.InvalidBuildSlot.selector);
         game.orderBuild(8 + G.MARKET, 1);
         vm.stopPrank();
     }
@@ -245,16 +246,16 @@ contract VillageEdgeTest is EndgameTest {
         game.completeBuild(alice, 0);
         vm.expectRevert(Villages.NotReady.selector);
         game.completeBuild(alice, 1);
-        vm.expectRevert("Invalid slot");
+        vm.expectRevert(E.InvalidSlot.selector);
         game.completeBuild(alice, 2);
         // Another wallet cannot cancel it: cancel only ever looks at the caller's own slots.
         vm.prank(bob);
-        vm.expectRevert("Cannot cancel completed build");
+        vm.expectRevert(E.CannotCancelCompletedBuild.selector);
         game.cancelBuild(0);
         assertEq(game.buildOrder(alice, 0).readyAt, b.readyAt);
         vm.warp(b.readyAt);
         vm.prank(alice);
-        vm.expectRevert("Cannot cancel completed build");
+        vm.expectRevert(E.CannotCancelCompletedBuild.selector);
         game.cancelBuild(0);
         vm.prank(outsider);
         game.completeBuild(alice, 0);
@@ -262,7 +263,7 @@ contract VillageEdgeTest is EndgameTest {
         vm.expectRevert(Villages.NotReady.selector);
         game.completeBuild(alice, 0);
         vm.prank(alice);
-        vm.expectRevert("Cannot cancel completed build");
+        vm.expectRevert(E.CannotCancelCompletedBuild.selector);
         game.cancelBuild(0);
     }
 
@@ -280,19 +281,19 @@ contract VillageEdgeTest is EndgameTest {
         assertEq(game.seedBalance(alice), seedAfterOrder + b.seed * 80 / 100);
         assertEq(ledger.burned(address(game)), b.seed - b.seed * 80 / 100);
         vm.prank(alice);
-        vm.expectRevert("Cannot cancel completed build");
+        vm.expectRevert(E.CannotCancelCompletedBuild.selector);
         game.cancelBuild(0);
     }
 
     function testResearchRejections() public {
         vm.prank(alice);
-        vm.expectRevert("Academy too low");
+        vm.expectRevert(E.AcademyTooLow.selector);
         game.orderResearch();
         _build(alice, 8 + G.ACADEMY);
         vm.prank(alice);
         game.orderResearch();
         vm.prank(alice);
-        vm.expectRevert("Research busy");
+        vm.expectRevert(E.ResearchBusy.selector);
         game.orderResearch();
         Villages.Study memory s = game.study(alice);
         vm.warp(s.readyAt - 1);
@@ -307,13 +308,13 @@ contract VillageEdgeTest is EndgameTest {
         game.completeResearch(alice);
         // Tier 2 needs Academy 2, which Town Hall 1 cannot host.
         vm.prank(alice);
-        vm.expectRevert("Academy too low");
+        vm.expectRevert(E.AcademyTooLow.selector);
         game.orderResearch();
     }
 
     function testExchangeRejectionsAreAtomic() public {
         vm.prank(alice);
-        vm.expectRevert("Market required");
+        vm.expectRevert(E.MarketRequired.selector);
         game.exchange(0, 1, 1);
         _build(alice, 8 + G.MARKET);
         uint8[5] memory ins = [0, 5, 0, 0, 0];
@@ -321,7 +322,7 @@ contract VillageEdgeTest is EndgameTest {
         uint256[5] memory lots = [uint256(1), 1, 1, 0, 1_000_001];
         for (uint256 i; i < 5; ++i) {
             vm.prank(alice);
-            vm.expectRevert("Invalid exchange");
+            vm.expectRevert(E.InvalidExchange.selector);
             game.exchange(ins[i], outs[i], lots[i]);
         }
         uint256[4] memory before_ = game.stock(alice);
@@ -337,10 +338,10 @@ contract VillageEdgeTest is EndgameTest {
         _fill(alice);
         uint256[4] memory full = game.stock(alice);
         vm.prank(alice);
-        vm.expectRevert("Insufficient storage");
+        vm.expectRevert(E.InsufficientStorage.selector);
         game.exchange(0, 1, 1);
         vm.prank(alice);
-        vm.expectRevert("Insufficient storage");
+        vm.expectRevert(E.InsufficientStorage.selector);
         game.exchange(4, 1, 1);
         assertEq(keccak256(abi.encode(game.stock(alice))), keccak256(abi.encode(full)));
         assertEq(game.seedBalance(alice), seedBefore);
@@ -350,12 +351,12 @@ contract VillageEdgeTest is EndgameTest {
         vm.startPrank(alice);
         vm.expectRevert(Villages.InvalidAction.selector);
         game.treasury(3, 0);
-        vm.expectRevert("Boost active or invalid resource");
+        vm.expectRevert(E.BoostActiveOrInvalidResource.selector);
         game.treasury(0, 4);
         uint64 shield = game.village(alice).shieldUntil;
         // The 7-day founding shield outlasts a 12 h peace shield: buying one now would burn 4,000 SEED
         // for nothing, so it is refused before any SEED is checked.
-        vm.expectRevert("Shield already active");
+        vm.expectRevert(E.ShieldAlreadyActive.selector);
         game.treasury(1, 0);
         vm.warp(shield);
         vm.expectRevert(SeedLedger.InsufficientSeed.selector);
@@ -364,11 +365,11 @@ contract VillageEdgeTest is EndgameTest {
         assertEq(game.village(alice).shieldUntil, shield);
         game.treasury(2, 0);
         assertEq(game.seedBalance(alice), 500 * U);
-        vm.expectRevert("Banner already owned");
+        vm.expectRevert(E.BannerAlreadyOwned.selector);
         game.treasury(2, 0);
         game.treasury(0, 3);
         assertEq(game.seedBalance(alice), 0);
-        vm.expectRevert("Boost active or invalid resource");
+        vm.expectRevert(E.BoostActiveOrInvalidResource.selector);
         game.treasury(0, 2);
         vm.stopPrank();
         assertEq(ledger.burned(address(game)), 1500 * U);
@@ -377,13 +378,13 @@ contract VillageEdgeTest is EndgameTest {
 
     function testClanActionsRejectedWithoutClanHallOrMembership() public {
         vm.startPrank(alice);
-        vm.expectRevert("Clan Hall 3 required");
+        vm.expectRevert(E.ClanHall3Required.selector);
         game.foundClan("Hams");
-        vm.expectRevert("Cannot join");
+        vm.expectRevert(E.CannotJoin.selector);
         game.joinClan(1);
-        vm.expectRevert("Not in clan");
+        vm.expectRevert(E.NotInClan.selector);
         game.leaveClan();
-        vm.expectRevert("Cannot raise capacity");
+        vm.expectRevert(E.CannotRaiseCapacity.selector);
         game.raiseClanCapacity();
         vm.stopPrank();
         vm.prank(outsider);
@@ -397,35 +398,35 @@ contract VillageEdgeTest is EndgameTest {
         _advanceTo(bob, 2);
         _clanHall(bob, 1);
         vm.prank(bob);
-        vm.expectRevert("Clan full or missing");
+        vm.expectRevert(E.ClanFullOrMissing.selector);
         game.joinClan(1);
         vm.prank(alice);
         uint256 id = game.foundClan("Hams");
         vm.prank(alice);
-        vm.expectRevert("Already in clan");
+        vm.expectRevert(E.AlreadyInClan.selector);
         game.foundClan("Other");
         vm.prank(alice);
-        vm.expectRevert("Cannot raise capacity");
+        vm.expectRevert(E.CannotRaiseCapacity.selector);
         game.raiseClanCapacity();
         vm.prank(bob);
-        vm.expectRevert("Clan full or missing");
+        vm.expectRevert(E.ClanFullOrMissing.selector);
         game.joinClan(id + 1);
         vm.prank(bob);
-        vm.expectRevert("Not invited");
+        vm.expectRevert(E.NotInvited.selector);
         game.joinClan(id);
         // Only the founder invites; a revoked invitation admits nobody.
         vm.prank(bob);
-        vm.expectRevert("Only founder invites");
+        vm.expectRevert(E.OnlyFounderInvites.selector);
         game.inviteToClan(bob, true);
         vm.prank(alice);
-        vm.expectRevert("Only founder invites");
+        vm.expectRevert(E.OnlyFounderInvites.selector);
         game.inviteToClan(address(0), true);
         vm.startPrank(alice);
         game.inviteToClan(bob, true);
         game.inviteToClan(bob, false);
         vm.stopPrank();
         vm.prank(bob);
-        vm.expectRevert("Not invited");
+        vm.expectRevert(E.NotInvited.selector);
         game.joinClan(id);
         vm.prank(alice);
         game.inviteToClan(bob, true);
@@ -433,17 +434,17 @@ contract VillageEdgeTest is EndgameTest {
         game.joinClan(id);
         assertFalse(clans.invited(address(game), id, bob), "invitation not consumed");
         vm.prank(bob);
-        vm.expectRevert("Cannot join");
+        vm.expectRevert(E.CannotJoin.selector);
         game.joinClan(id);
         vm.prank(bob);
-        vm.expectRevert("Cannot raise capacity");
+        vm.expectRevert(E.CannotRaiseCapacity.selector);
         game.raiseClanCapacity();
         assertEq(clans.clan(address(game), id).members.length, 2);
         // Leaving does not leave a standing invitation behind: rejoining needs a fresh one.
         vm.prank(bob);
         game.leaveClan();
         vm.prank(bob);
-        vm.expectRevert("Not invited");
+        vm.expectRevert(E.NotInvited.selector);
         game.joinClan(id);
     }
 
@@ -463,13 +464,13 @@ contract VillageEdgeTest is EndgameTest {
         assertEq(game.village(alice).peaceUsedAt, vm.getBlockTimestamp());
         // A second purchase while this shield runs is refused before the cooldown or any burn.
         vm.prank(alice);
-        vm.expectRevert("Peace cooldown");
+        vm.expectRevert(E.PeaceCooldown.selector);
         game.treasury(1, 0);
         // Cooldown is exactly 3 days from purchase.
         uint256 bought = vm.getBlockTimestamp();
         vm.warp(bought + 3 days - 1);
         vm.prank(alice);
-        vm.expectRevert("Peace cooldown");
+        vm.expectRevert(E.PeaceCooldown.selector);
         game.treasury(1, 0);
         vm.warp(bought + 3 days);
         vm.prank(alice);
@@ -491,7 +492,7 @@ contract VillageEdgeTest is EndgameTest {
         }
         _found(carol, "hamster_42");
         vm.prank(address(0xD00D));
-        vm.expectRevert("Name taken");
+        vm.expectRevert(E.NameTaken.selector);
         game.found(string(name));
     }
 
@@ -570,37 +571,37 @@ contract ArmyEdgeTest is EndgameTest {
 
     function testSendRejections() public {
         vm.startPrank(alice);
-        vm.expectRevert("Invalid movement");
+        vm.expectRevert(E.InvalidMovement.selector);
         game.send(bob, 0, _units(0, 1), false, 0);
-        vm.expectRevert("Invalid movement");
+        vm.expectRevert(E.InvalidMovement.selector);
         game.send(bob, 0, _units(0, 1), false, 4);
-        vm.expectRevert("Invalid movement");
+        vm.expectRevert(E.InvalidMovement.selector);
         game.send(alice, 0, _units(0, 1), false, 1);
-        vm.expectRevert("Missing target");
+        vm.expectRevert(E.MissingTarget.selector);
         game.send(outsider, 0, _units(0, 1), false, 1);
-        vm.expectRevert("Target protected");
+        vm.expectRevert(E.TargetProtected.selector);
         game.send(bob, 0, _units(0, 1), false, 1);
-        vm.expectRevert("Invalid camp movement");
+        vm.expectRevert(E.InvalidCampMovement.selector);
         game.send(address(0), 200, _units(0, 1), false, 1);
-        vm.expectRevert("Invalid camp movement");
+        vm.expectRevert(E.InvalidCampMovement.selector);
         game.send(address(0), 0, _units(6, 1), false, 2);
-        vm.expectRevert("Invalid camp movement");
+        vm.expectRevert(E.InvalidCampMovement.selector);
         game.send(address(0), 0, _units(0, 1), false, 3);
-        vm.expectRevert("Invalid troop count");
+        vm.expectRevert(E.InvalidTroopCount.selector);
         game.send(address(0), 0, _units(0, 0), false, 1);
-        vm.expectRevert("Insufficient troops");
+        vm.expectRevert(E.InsufficientTroops.selector);
         game.send(address(0), 0, _units(0, 11), false, 1);
         vm.stopPrank();
         vm.warp(game.village(bob).shieldUntil);
         vm.startPrank(alice);
-        vm.expectRevert("Only scouts reconnoitre");
+        vm.expectRevert(E.OnlyScoutsReconnoitre.selector);
         game.send(bob, 0, _units(0, 1), false, 2);
-        vm.expectRevert("Insufficient troops");
+        vm.expectRevert(E.InsufficientTroops.selector);
         game.send(bob, 0, _units(6, 1), false, 2);
-        vm.expectRevert("Invalid support");
+        vm.expectRevert(E.InvalidSupport.selector);
         game.send(bob, 0, _units(0, 1), false, 3);
         game.send(address(0), 1, _units(0, 1), true, 1);
-        vm.expectRevert("Champion away");
+        vm.expectRevert(E.ChampionAway.selector);
         game.send(address(0), 2, _units(0, 1), true, 1);
         vm.stopPrank();
         assertEq(army.home(address(game), alice)[0], 9);
@@ -612,70 +613,70 @@ contract ArmyEdgeTest is EndgameTest {
     }
 
     function testResolveTimingAndFinality() public {
-        vm.expectRevert("Movement not arrived");
+        vm.expectRevert(E.MovementNotArrived.selector);
         army.resolve(address(game), 999);
         uint256 id = _send(alice, address(0), 3, 0, 10, true, 1);
         Army.Movement memory m = army.movement(address(game), id);
         vm.warp(m.arriveAt - 1);
-        vm.expectRevert("Movement not arrived");
+        vm.expectRevert(E.MovementNotArrived.selector);
         army.resolve(address(game), id);
         // Another namespace has no such movement.
-        vm.expectRevert("Movement not arrived");
+        vm.expectRevert(E.MovementNotArrived.selector);
         army.resolve(address(this), id);
         vm.warp(m.arriveAt);
         army.resolve(address(game), id);
         m = army.movement(address(game), id);
         assertEq(m.mode, 4);
-        vm.expectRevert("Movement not arrived");
+        vm.expectRevert(E.MovementNotArrived.selector);
         army.resolve(address(game), id);
         vm.prank(alice);
-        vm.expectRevert("Cannot recall support");
+        vm.expectRevert(E.CannotRecallSupport.selector);
         game.recall(id);
         vm.warp(m.arriveAt);
         army.resolve(address(game), id);
         assertEq(army.movement(address(game), id).mode, 6);
         assertFalse(army.champion(address(game), alice).away);
-        vm.expectRevert("Movement not arrived");
+        vm.expectRevert(E.MovementNotArrived.selector);
         army.resolve(address(game), id);
-        vm.expectRevert("Support still allied");
+        vm.expectRevert(E.SupportStillAllied.selector);
         army.returnFormerSupport(address(game), id);
     }
 
     function testTrainRejections() public {
         vm.startPrank(alice);
-        vm.expectRevert("Invalid training");
+        vm.expectRevert(E.InvalidTraining.selector);
         game.train(7, 1);
-        vm.expectRevert("Invalid training");
+        vm.expectRevert(E.InvalidTraining.selector);
         game.train(0, 0);
-        vm.expectRevert("Invalid training");
+        vm.expectRevert(E.InvalidTraining.selector);
         game.train(0, 1_000_001);
-        vm.expectRevert("Research required");
+        vm.expectRevert(E.ResearchRequired.selector);
         game.train(1, 1);
-        vm.expectRevert("Research required");
+        vm.expectRevert(E.ResearchRequired.selector);
         game.train(6, 1);
-        vm.expectRevert("Insufficient Burrow room");
+        vm.expectRevert(E.InsufficientBurrowRoom.selector);
         game.train(0, 21);
         vm.stopPrank();
-        vm.expectRevert("Training not ready");
+        vm.expectRevert(E.TrainingNotReady.selector);
         army.completeTraining(address(game), alice);
         _fill(alice);
         vm.prank(alice);
         game.train(0, 2);
         vm.prank(alice);
-        vm.expectRevert("Training busy or missing village");
+        vm.expectRevert(E.TrainingBusyOrMissingVillage.selector);
         game.train(0, 1);
         Army.Training memory t = army.training(address(game), alice);
         vm.warp(t.readyAt - 1);
-        vm.expectRevert("Training not ready");
+        vm.expectRevert(E.TrainingNotReady.selector);
         army.completeTraining(address(game), alice);
         vm.warp(t.readyAt);
         army.completeTraining(address(game), alice);
         assertEq(army.home(address(game), alice)[0], 12);
-        vm.expectRevert("Training not ready");
+        vm.expectRevert(E.TrainingNotReady.selector);
         army.completeTraining(address(game), alice);
         // Bob has no Barracks.
         vm.prank(bob);
-        vm.expectRevert("Invalid training");
+        vm.expectRevert(E.InvalidTraining.selector);
         game.train(0, 1);
     }
 
@@ -696,9 +697,9 @@ contract ArmyEdgeTest is EndgameTest {
 
     function testChampionAllocationRejections() public {
         vm.startPrank(alice);
-        vm.expectRevert("Insufficient champion points");
+        vm.expectRevert(E.InsufficientChampionPoints.selector);
         game.allocateChampion(1, 0, 0, 0);
-        vm.expectRevert("Stat cap");
+        vm.expectRevert(E.StatCap.selector);
         game.allocateChampion(0, 21, 0, 0);
         vm.stopPrank();
         _checkpoint(20_000);
@@ -707,9 +708,9 @@ contract ArmyEdgeTest is EndgameTest {
         assertEq(army.championLevel(address(game), alice), 2);
         vm.startPrank(alice);
         game.allocateChampion(3, 1, 0, 0);
-        vm.expectRevert("Points cannot be reassigned");
+        vm.expectRevert(E.PointsCannotBeReassigned.selector);
         game.allocateChampion(4, 0, 0, 0);
-        vm.expectRevert("Insufficient champion points");
+        vm.expectRevert(E.InsufficientChampionPoints.selector);
         game.allocateChampion(3, 1, 1, 0);
         game.allocateChampion(3, 1, 0, 0);
         vm.stopPrank();

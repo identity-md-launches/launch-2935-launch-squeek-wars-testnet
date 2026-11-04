@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {GameErrors as E} from "./GameErrors.sol";
+
 library GameTypes {
     uint256 internal constant U = 1_000_000;
     uint256 internal constant MAP_MULTIPLIER = 7919;
@@ -49,12 +51,12 @@ library GameTypes {
 
     function nameKey(string memory name, uint256 maximum) internal pure returns (bytes32) {
         bytes memory b = bytes(name);
-        require(b.length >= 3 && b.length <= maximum, "Invalid name length");
+        require(b.length >= 3 && b.length <= maximum, E.InvalidNameLength());
         for (uint256 i; i < b.length; ++i) {
             uint8 c = uint8(b[i]);
             require(
                 (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95,
-                "Invalid name character"
+                E.InvalidNameCharacter()
             );
             if (c >= 65 && c <= 90) b[i] = bytes1(c + 32);
         }

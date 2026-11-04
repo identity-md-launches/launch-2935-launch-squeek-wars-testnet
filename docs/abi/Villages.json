@@ -1291,12 +1291,107 @@
   },
   {
     "type": "error",
+    "name": "AcademyTooLow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AlreadyBuildingTarget",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BannerAlreadyOwned",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BoostActiveOrInvalidResource",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BuildingCappedByTownHall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotCancelCompletedBuild",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FieldCappedByTownHall",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InsufficientResources",
     "inputs": []
   },
   {
     "type": "error",
+    "name": "InsufficientStorage",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidAction",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidBuildSlot",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCamp",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidDependency",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidExchange",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidNameCharacter",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidNameLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSlot",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MarketRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MaxLevel",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NameTaken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoPlotAvailable",
     "inputs": []
   },
   {
@@ -1316,7 +1411,32 @@
   },
   {
     "type": "error",
+    "name": "PeaceCooldown",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "Reentrancy",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ResearchBusy",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ResearchTier2First",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ResearchVaultFirst",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ShieldAlreadyActive",
     "inputs": []
   }
 ]

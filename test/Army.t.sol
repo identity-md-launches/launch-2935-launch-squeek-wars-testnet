@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
+import {GameErrors as E} from "../src/libraries/GameErrors.sol";
 import {GameTest} from "./helpers/GameTest.sol";
 import {EndgameTest} from "./helpers/EndgameTest.sol";
 import {Army} from "../src/Army.sol";
@@ -15,16 +16,16 @@ contract ArmyTest is GameTest {
         game.train(0, 3);
         assertEq(army.allocatedRoom(address(game), alice), 3);
         assertEq(game.stock(alice)[0], before_[0] - 150 * U);
-        vm.expectRevert("Training busy or missing village");
+        vm.expectRevert(E.TrainingBusyOrMissingVillage.selector);
         vm.prank(alice);
         game.train(0, 1);
-        vm.expectRevert("Training not ready");
+        vm.expectRevert(E.TrainingNotReady.selector);
         army.completeTraining(address(game), alice);
         vm.warp(army.training(address(game), alice).readyAt);
         vm.prank(outsider);
         army.completeTraining(address(game), alice);
         assertEq(army.home(address(game), alice)[0], 3);
-        vm.expectRevert("Training not ready");
+        vm.expectRevert(E.TrainingNotReady.selector);
         army.completeTraining(address(game), alice);
     }
 
@@ -33,10 +34,10 @@ contract ArmyTest is GameTest {
         vm.prank(alice);
         game.train(0, 1);
         _build(alice, 8 + G.BARRACKS);
-        vm.expectRevert("Research required");
+        vm.expectRevert(E.ResearchRequired.selector);
         vm.prank(alice);
         game.train(1, 1);
-        vm.expectRevert("Insufficient Burrow room");
+        vm.expectRevert(E.InsufficientBurrowRoom.selector);
         vm.prank(alice);
         game.train(0, 31);
         vm.expectRevert();
@@ -56,13 +57,13 @@ contract ArmyTest is GameTest {
     function testShieldNoEarlyResolveReturnOnceAndRoomConservation() public {
         _build(alice, 8 + G.BARRACKS);
         _train(alice, 0, 8);
-        vm.expectRevert("Target protected");
+        vm.expectRevert(E.TargetProtected.selector);
         _send(alice, bob, 0, 0, 8, true, 1);
         vm.warp(START + 8 days);
         uint256 id = _send(alice, bob, 0, 0, 8, true, 1);
         assertEq(army.home(address(game), alice)[0], 0);
         assertTrue(army.champion(address(game), alice).away);
-        vm.expectRevert("Movement not arrived");
+        vm.expectRevert(E.MovementNotArrived.selector);
         army.resolve(address(game), id);
         uint256 targetSeed = game.seedBalance(bob);
         uint256 attackerSeed = game.seedBalance(alice);
@@ -79,7 +80,7 @@ contract ArmyTest is GameTest {
         assertEq(army.movement(address(game), id).mode, 6);
         assertEq(army.home(address(game), alice)[0], returning.units[0]);
         assertFalse(army.champion(address(game), alice).away);
-        vm.expectRevert("Movement not arrived");
+        vm.expectRevert(E.MovementNotArrived.selector);
         army.resolve(address(game), id);
     }
 
@@ -88,11 +89,11 @@ contract ArmyTest is GameTest {
         _train(alice, 0, 8);
         _send(alice, address(0), 0, 0, 4, true, 1);
         assertEq(game.village(alice).shieldUntil, vm.getBlockTimestamp());
-        vm.expectRevert("Champion away");
+        vm.expectRevert(E.ChampionAway.selector);
         _send(alice, address(0), 1, 0, 4, true, 1);
-        vm.expectRevert("Insufficient troops");
+        vm.expectRevert(E.InsufficientTroops.selector);
         _send(alice, address(0), 1, 0, 5, false, 1);
-        vm.expectRevert("Invalid movement");
+        vm.expectRevert(E.InvalidMovement.selector);
         _send(alice, alice, 0, 0, 1, false, 1);
     }
 
@@ -121,7 +122,7 @@ contract ArmyTest is GameTest {
         for (uint8 i; i < 3; ++i) {
             _send(alice, address(0), 0, 0, 1, false, 1);
         }
-        vm.expectRevert("Daily raid limit");
+        vm.expectRevert(E.DailyRaidLimit.selector);
         _send(alice, address(0), 0, 0, 1, false, 1);
         vm.warp(vm.getBlockTimestamp() + 1 days);
         _send(alice, address(0), 0, 0, 1, false, 1);
@@ -169,13 +170,13 @@ contract ArmyTest is GameTest {
         assertEq(army.championLevel(address(game), alice), 30);
         vm.prank(alice);
         game.allocateChampion(56, 20, 20, 20);
-        vm.expectRevert("Insufficient champion points");
+        vm.expectRevert(E.InsufficientChampionPoints.selector);
         vm.prank(alice);
         game.allocateChampion(57, 20, 20, 20);
-        vm.expectRevert("Stat cap");
+        vm.expectRevert(E.StatCap.selector);
         vm.prank(alice);
         game.allocateChampion(56, 21, 20, 20);
-        vm.expectRevert("Points cannot be reassigned");
+        vm.expectRevert(E.PointsCannotBeReassigned.selector);
         vm.prank(alice);
         game.allocateChampion(55, 20, 20, 20);
     }
@@ -251,7 +252,7 @@ contract LateGameArmyTest is EndgameTest {
         _troops(alice, 6, 2);
         _troops(alice, 0, 20);
         vm.warp(vm.getBlockTimestamp() + 8 days);
-        vm.expectRevert("Only scouts reconnoitre");
+        vm.expectRevert(E.OnlyScoutsReconnoitre.selector);
         _send(alice, bob, 0, 0, 1, false, 2);
         uint256 recon = _send(alice, bob, 0, 6, 2, false, 2);
         _arrive(recon);

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {GameErrors as E} from "./libraries/GameErrors.sol";
+
 import {ISqueekCore, ISqueekNFT} from "./interfaces/ISqueek.sol";
 import {GameTypes as G} from "./libraries/GameTypes.sol";
 import {Guard} from "./libraries/Guard.sol";
@@ -134,7 +136,9 @@ contract SeedLedger is Guard {
         if (length != 0 && observations[length - 1].day == day) revert AlreadyCheckpointed();
         uint64 current = _work(core);
         if (length != 0 && current < lastCumulativeWork) revert WorkDecreased();
-        Observation memory next;
+        // No external calls follow: build the new observation directly in its storage slot.
+        observations.push();
+        Observation storage next = observations[length];
         next.timestamp = uint64(block.timestamp);
         next.day = uint64(day);
         if (length != 0) {
@@ -148,7 +152,6 @@ contract SeedLedger is Guard {
             }
         }
         lastCumulativeWork = current;
-        observations.push(next);
         emit Checkpoint(length, day, next.work, current);
     }
 
@@ -158,7 +161,7 @@ contract SeedLedger is Guard {
 
     /// @notice Time integral of Wheelhouse's fractional output bonus at an arbitrary past time.
     function wheelIntegral(uint8 level, uint256 timestamp) external view returns (uint256) {
-        require(level <= 10 && timestamp <= block.timestamp, "Invalid integral query");
+        require(level <= 10 && timestamp <= block.timestamp, E.InvalidIntegralQuery());
         uint256 length = observations.length;
         if (length == 0 || level == 0 || timestamp < observations[0].timestamp) return 0;
         uint256 lo;
@@ -174,8 +177,7 @@ contract SeedLedger is Guard {
 
     function register(address player) external nonReentrant {
         require(
-            player != address(0) && !accounts[msg.sender][player].exists,
-            "Already registered or invalid player"
+            player != address(0) && !accounts[msg.sender][player].exists, E.AlreadyRegisteredOrInvalidPlayer()
         );
         if (observations.length == 0 || observations[observations.length - 1].day < currentDay()) {
             _checkpoint();
@@ -207,7 +209,7 @@ contract SeedLedger is Guard {
 
     /// @dev Only refunds previously burned SEED within the caller's own namespace.
     function refund(address player, uint256 amount) external {
-        require(accounts[msg.sender][player].exists && amount <= burned[msg.sender], "Invalid refund");
+        require(accounts[msg.sender][player].exists && amount <= burned[msg.sender], E.InvalidRefund());
         accounts[msg.sender][player].balance += amount;
         burned[msg.sender] -= amount;
         emit Refunded(msg.sender, player, amount);

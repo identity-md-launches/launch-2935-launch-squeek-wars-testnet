@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {ModuleCalls} from "./libraries/ModuleCalls.sol";
+
+import {GameErrors as E} from "./libraries/GameErrors.sol";
+
 import {GameTypes as G} from "./libraries/GameTypes.sol";
 import {Guard} from "./libraries/Guard.sol";
 import {GameRules} from "./GameRules.sol";
@@ -127,7 +131,7 @@ contract Army is Guard {
     constructor(GameRules rules_, SeedLedger ledger_, Clans clans_) {
         require(
             address(rules_) != address(0) && address(ledger_) != address(0) && address(clans_) != address(0),
-            "Invalid dependency"
+            E.InvalidDependency()
         );
         rules = rules_;
         ledger = ledger_;
@@ -172,7 +176,7 @@ contract Army is Guard {
     }
 
     function camp(address game, uint16 id) external view returns (Camp memory) {
-        require(id < 200, "Invalid camp");
+        require(id < 200, E.InvalidCamp());
         return worlds[game].camps[id];
     }
 
@@ -182,12 +186,18 @@ contract Army is Guard {
 
     function train(address who, uint8 kind, uint32 count) external nonReentrant {
         World storage w = worlds[msg.sender];
-        G.Context memory c = IVillages(msg.sender).armyContext(who);
-        require(c.exists && w.training[who].readyAt == 0, "Training busy or missing village");
-        (uint256[4] memory cost, uint256 duration, uint256 room) =
-            rules.unitQuote(kind, c.barracks, c.research, count);
-        require(w.room[who] + room <= c.room, "Insufficient Burrow room");
-        IVillages(msg.sender).armySpend(who, cost);
+        G.Context memory c = _context(msg.sender, who);
+        require(c.exists && w.training[who].readyAt == 0, E.TrainingBusyOrMissingVillage());
+        (uint256[4] memory cost, uint256 duration, uint256 room) = abi.decode(
+            ModuleCalls.read(
+                address(rules), abi.encodeCall(rules.unitQuote, (kind, c.barracks, c.research, count)), 192
+            ),
+            (uint256[4], uint256, uint256)
+        );
+        require(w.room[who] + room <= c.room, E.InsufficientBurrowRoom());
+        ModuleCalls.invoke(
+            address(IVillages(msg.sender)), abi.encodeCall(IVillages(msg.sender).armySpend, (who, cost)), 0
+        );
         w.room[who] += room;
         w.training[who] = Training(kind, count, uint64(block.timestamp + duration));
         emit TrainingOrdered(msg.sender, who, kind, count, block.timestamp + duration);
@@ -196,7 +206,7 @@ contract Army is Guard {
     function completeTraining(address game, address who) external nonReentrant {
         World storage w = worlds[game];
         Training memory t = w.training[who];
-        require(t.readyAt != 0 && block.timestamp >= t.readyAt, "Training not ready");
+        require(t.readyAt != 0 && block.timestamp >= t.readyAt, E.TrainingNotReady());
         delete w.training[who];
         w.home[who][t.kind] += t.count;
         emit TrainingCompleted(game, who, t.kind, t.count);
@@ -208,7 +218,11 @@ contract Army is Guard {
 
     function _xp(address game, address who, uint256 amount) private {
         if (amount == 0) return;
-        if (ledger.nftBalance(who) != 0) amount = amount * 110 / 100;
+        if (
+            abi.decode(
+                    ModuleCalls.read(address(ledger), abi.encodeCall(ledger.nftBalance, (who)), 32), (uint256)
+                ) != 0
+        ) amount = amount * 110 / 100;
         Champion storage c = worlds[game].champions[who];
         c.xp = G.min(MAX_XP, c.xp + amount);
         emit ChampionXP(game, who, amount, c.xp);
@@ -216,14 +230,14 @@ contract Army is Guard {
 
     function allocate(address who, uint8 might, uint8 attack, uint8 defense, uint8 carry) external {
         Champion storage c = worlds[msg.sender].champions[who];
-        require(attack <= 20 && defense <= 20 && carry <= 20, "Stat cap");
+        require(attack <= 20 && defense <= 20 && carry <= 20, E.StatCap());
         require(
             might >= c.might && attack >= c.attack && defense >= c.defense && carry >= c.carry,
-            "Points cannot be reassigned"
+            E.PointsCannotBeReassigned()
         );
         require(
             uint256(might) + attack + defense + carry <= 4 * (championLevel(msg.sender, who) - 1),
-            "Insufficient champion points"
+            E.InsufficientChampionPoints()
         );
         c.might = might;
         c.attack = attack;
@@ -242,7 +256,11 @@ contract Army is Guard {
         attackBonus = uint256(c.attack) * 5000;
         defenseBonus = uint256(c.defense) * 5000;
         carryBonus = uint256(c.carry) * 10000;
-        if (ledger.nftBalance(who) != 0) {
+        if (
+            abi.decode(
+                    ModuleCalls.read(address(ledger), abi.encodeCall(ledger.nftBalance, (who)), 32), (uint256)
+                ) != 0
+        ) {
             might = might * 110 / 100;
             attackBonus = attackBonus * 110 / 100;
             defenseBonus = defenseBonus * 110 / 100;
@@ -251,7 +269,7 @@ contract Army is Guard {
     }
 
     function travelTime(uint16 from, uint16 to, uint256 speed) public pure returns (uint256) {
-        require(from < 10000 && to < 10000 && speed > 0 && speed <= 100, "Invalid travel");
+        require(from < 10000 && to < 10000 && speed > 0 && speed <= 100, E.InvalidTravel());
         uint256 dx = from % 100 > to % 100 ? from % 100 - to % 100 : to % 100 - from % 100;
         uint256 dy = from / 100 > to / 100 ? from / 100 - to / 100 : to / 100 - from / 100;
         uint256 squared = (dx * dx + dy * dy) * UNIT * UNIT;
@@ -276,46 +294,61 @@ contract Army is Guard {
         bool withChampion,
         uint8 mode
     ) external nonReentrant returns (uint256 id) {
-        require(mode >= 1 && mode <= 3 && who != target, "Invalid movement");
+        require(mode >= 1 && mode <= 3 && who != target, E.InvalidMovement());
         World storage w = worlds[msg.sender];
-        G.Context memory c = IVillages(msg.sender).armyContext(who);
-        require(c.exists, "Missing village");
+        G.Context memory c = _context(msg.sender, who);
+        require(c.exists, E.MissingVillage());
         uint16 destination;
         if (target == address(0)) {
-            require(campId < 200 && mode == 1, "Invalid camp movement");
+            require(campId < 200 && mode == 1, E.InvalidCampMovement());
             destination = G.tile(uint256(campId) * 50 + 49);
         } else {
-            G.Context memory d = IVillages(msg.sender).armyContext(target);
-            require(d.exists, "Missing target");
+            G.Context memory d = _context(msg.sender, target);
+            require(d.exists, E.MissingTarget());
             destination = d.tile;
-            bool allied = clans.sameClan(msg.sender, who, target);
+            bool allied = _sameClan(msg.sender, who, target);
             if (mode == 3) {
-                require(allied && !withChampion && w.supporting[who][target] == 0, "Invalid support");
+                require(allied && !withChampion && w.supporting[who][target] == 0, E.InvalidSupport());
             } else {
-                require(!allied && block.timestamp >= d.shieldUntil, "Target protected");
+                require(!allied && block.timestamp >= d.shieldUntil, E.TargetProtected());
             }
         }
         if (mode == 1) {
-            bytes32 key = _raidKey(who, target, campId, ledger.currentDay(), false);
-            require(w.raids[key] < 3, "Daily raid limit");
+            bytes32 key = _raidKey(
+                who,
+                target,
+                campId,
+                abi.decode(
+                    ModuleCalls.read(address(ledger), abi.encodeCall(ledger.currentDay, ()), 32), (uint256)
+                ),
+                false
+            );
+            require(w.raids[key] < 3, E.DailyRaidLimit());
             ++w.raids[key];
         }
         uint256 speed = type(uint256).max;
         uint256 count;
         for (uint8 i; i < 7; ++i) {
-            require(units[i] <= w.home[who][i], "Insufficient troops");
-            if (mode == 2 && i != 6) require(units[i] == 0, "Only scouts reconnoitre");
+            require(units[i] <= w.home[who][i], E.InsufficientTroops());
+            if (mode == 2 && i != 6) require(units[i] == 0, E.OnlyScoutsReconnoitre());
             if (units[i] != 0) {
-                (,, uint256 s,,,) = rules.unitStats(i);
+                (,, uint256 s,,,) = _unitStats(i);
                 speed = G.min(speed, s);
                 count += units[i];
             }
             w.home[who][i] -= units[i];
         }
-        require(count > 0 && count <= rules.MAX_TROOPS(), "Invalid troop count");
-        if (mode == 2) require(!withChampion, "Scouts travel alone");
+        require(
+            count > 0
+                && count
+                    <= abi.decode(
+                        ModuleCalls.read(address(rules), abi.encodeCall(rules.MAX_TROOPS, ()), 32), (uint256)
+                    ),
+            E.InvalidTroopCount()
+        );
+        if (mode == 2) require(!withChampion, E.ScoutsTravelAlone());
         if (withChampion) {
-            require(!w.champions[who].away, "Champion away");
+            require(!w.champions[who].away, E.ChampionAway());
             w.champions[who].away = true;
         }
         uint256 duration = travelTime(c.tile, destination, speed);
@@ -337,9 +370,11 @@ contract Army is Guard {
     function resolve(address game, uint256 id) external nonReentrant {
         World storage w = worlds[game];
         Movement storage m = w.movements[id];
-        require(m.mode >= 1 && m.mode <= 4 && block.timestamp >= m.arriveAt, "Movement not arrived");
+        require(m.mode >= 1 && m.mode <= 4 && block.timestamp >= m.arriveAt, E.MovementNotArrived());
         if (m.mode == 4) {
-            IVillages(game).armyCredit(m.owner, m.loot);
+            ModuleCalls.invoke(
+                address(IVillages(game)), abi.encodeCall(IVillages(game).armyCredit, (m.owner, m.loot)), 0
+            );
             for (uint8 i; i < 7; ++i) {
                 w.home[m.owner][i] += m.units[i];
             }
@@ -348,7 +383,7 @@ contract Army is Guard {
             delete m.units;
             m.mode = 6;
         } else if (m.mode == 3) {
-            if (clans.sameClan(game, m.owner, m.target) && w.support[m.target].length < MAX_SUPPORT) {
+            if (_sameClan(game, m.owner, m.target) && w.support[m.target].length < MAX_SUPPORT) {
                 m.mode = 5;
                 w.support[m.target].push(id);
             } else {
@@ -358,11 +393,20 @@ contract Army is Guard {
         } else {
             bool protected_;
             if (m.target != address(0)) {
-                G.Context memory d = IVillages(game).armyContext(m.target);
-                protected_ = block.timestamp < d.shieldUntil || clans.sameClan(game, m.owner, m.target);
+                G.Context memory d = _context(game, m.target);
+                protected_ = block.timestamp < d.shieldUntil || _sameClan(game, m.owner, m.target);
             }
             if (m.mode == 1) {
-                bytes32 key = _raidKey(m.owner, m.target, m.campId, ledger.currentDay(), true);
+                bytes32 key = _raidKey(
+                    m.owner,
+                    m.target,
+                    m.campId,
+                    abi.decode(
+                        ModuleCalls.read(address(ledger), abi.encodeCall(ledger.currentDay, ()), 32),
+                        (uint256)
+                    ),
+                    true
+                );
                 if (w.raids[key] >= 3) protected_ = true;
                 if (!protected_) ++w.raids[key];
             }
@@ -387,18 +431,19 @@ contract Army is Guard {
     function recall(address who, uint256 id) external nonReentrant {
         World storage w = worlds[msg.sender];
         Movement storage m = w.movements[id];
-        require(m.mode == 5 && (who == m.owner || who == m.target), "Cannot recall support");
-        _removeSupport(w, m.target, id);
-        w.supporting[m.owner][m.target] = 0;
-        _return(m);
-        emit MovementResolved(msg.sender, id, m.mode, m.arriveAt);
+        require(m.mode == 5 && (who == m.owner || who == m.target), E.CannotRecallSupport());
+        _recall(w, m, msg.sender, id);
     }
 
     /// @notice Anyone can return support whose owners have ceased to be clanmates.
     function returnFormerSupport(address game, uint256 id) external nonReentrant {
         World storage w = worlds[game];
         Movement storage m = w.movements[id];
-        require(m.mode == 5 && !clans.sameClan(game, m.owner, m.target), "Support still allied");
+        require(m.mode == 5 && !_sameClan(game, m.owner, m.target), E.SupportStillAllied());
+        _recall(w, m, game, id);
+    }
+
+    function _recall(World storage w, Movement storage m, address game, uint256 id) private {
         _removeSupport(w, m.target, id);
         w.supporting[m.owner][m.target] = 0;
         _return(m);
@@ -414,12 +459,12 @@ contract Army is Guard {
                 return;
             }
         }
-        revert("Missing support");
+        revert E.MissingSupport();
     }
 
     function _scout(address game, Movement storage m) private {
         World storage w = worlds[game];
-        IVillages(game).armyTouch(m.owner);
+        ModuleCalls.invoke(address(IVillages(game)), abi.encodeCall(IVillages(game).armyTouch, (m.owner)), 0);
         uint256 enemy = w.home[m.target][6];
         uint256 lost = G.min(m.units[6], enemy);
         m.units[6] -= uint32(lost);
@@ -431,7 +476,7 @@ contract Army is Guard {
 
     function _strength(uint32[7] memory units, bool attacking) private view returns (uint256 total) {
         for (uint8 i; i < 7; ++i) {
-            (uint256 a, uint256 d,,,,) = rules.unitStats(i);
+            (uint256 a, uint256 d,,,,) = _unitStats(i);
             total += units[i] * (attacking ? a : d);
         }
     }
@@ -457,8 +502,8 @@ contract Army is Guard {
         uint256[] storage list = w.support[who];
         for (uint256 i; i < list.length; ++i) {
             Movement storage s = w.movements[list[i]];
-            if (clans.sameClan(game, s.owner, who)) {
-                G.Context memory ally = IVillages(game).armyContext(s.owner);
+            if (_sameClan(game, s.owner, who)) {
+                G.Context memory ally = _context(game, s.owner);
                 power += _strength(s.units, false) * (100 + uint256(ally.forge) * 2) / 100;
             }
         }
@@ -478,7 +523,7 @@ contract Army is Guard {
         bool wipe,
         bool medicine
     ) private returns (uint256 killed) {
-        IVillages(game).armyTouch(who);
+        ModuleCalls.invoke(address(IVillages(game)), abi.encodeCall(IVillages(game).armyTouch, (who)), 0);
         uint256 lostRoom;
         uint256[7] memory losses = wipe || own == 0 ? _all(units) : _casualties(units, enemy, own);
         for (uint8 i; i < 7; ++i) {
@@ -486,8 +531,11 @@ contract Army is Guard {
             if (medicine && !wipe) lost -= lost / 10;
             if (lost != 0) {
                 units[i] -= uint32(lost);
-                killed += lost * rules.unitValue(i);
-                (,,,, uint256 room,) = rules.unitStats(i);
+                killed += lost
+                    * abi.decode(
+                        ModuleCalls.read(address(rules), abi.encodeCall(rules.unitValue, (i)), 32), (uint256)
+                    );
+                (,,,, uint256 room,) = _unitStats(i);
                 lostRoom += lost * room;
             }
         }
@@ -537,7 +585,7 @@ contract Army is Guard {
 
     function _carry(address game, Movement storage m, uint8 tier) private view returns (uint256 capacity) {
         for (uint8 i; i < 7; ++i) {
-            (,,, uint256 carry,,) = rules.unitStats(i);
+            (,,, uint256 carry,,) = _unitStats(i);
             capacity += m.units[i] * carry;
         }
         uint256 bonus = tier >= 5 ? 400_000 : tier >= 3 ? 200_000 : 0;
@@ -552,13 +600,13 @@ contract Army is Guard {
         World storage w = worlds[game];
         Movement storage m = w.movements[id];
         Combat memory c;
-        c.attacking = IVillages(game).armyContext(m.owner);
+        c.attacking = _context(game, m.owner);
         c.attack = _attack(game, m, c.attacking);
         if (m.target == address(0)) {
             _refreshCamp(w.camps[m.campId], m.campId);
             c.defense = w.camps[m.campId].defense;
         } else {
-            c.defending = IVillages(game).armyContext(m.target);
+            c.defending = _context(game, m.target);
             c.defense = _defense(game, m.target, c.defending);
             c.weakTarget = uint256(c.defending.townHall) + 3 <= c.attacking.townHall;
         }
@@ -587,51 +635,95 @@ contract Army is Guard {
             uint256[] storage list = w.support[m.target];
             for (uint256 i; i < list.length; ++i) {
                 Movement storage s = w.movements[list[i]];
-                if (clans.sameClan(game, s.owner, m.target)) {
-                    G.Context memory ally = IVillages(game).armyContext(s.owner);
+                if (_sameClan(game, s.owner, m.target)) {
+                    G.Context memory ally = _context(game, s.owner);
                     c.defenderLost += _losses(
                         game, s.owner, s.units, c.attack, c.defense, c.decisive, ally.research >= 4
                     );
                 }
             }
+            // Losses above use the original defense and order for every contingent. Only afterwards
+            // release emptied slots/pairs; walk backwards so swap-and-pop cannot skip an entry.
+            for (uint256 i = list.length; i != 0; --i) {
+                uint256 supportId = list[i - 1];
+                Movement storage s = w.movements[supportId];
+                uint32 remaining;
+                for (uint8 j; j < 7; ++j) {
+                    remaining |= s.units[j];
+                }
+                if (remaining == 0) {
+                    _recall(w, s, game, supportId);
+                }
+            }
             if (c.decisive) {
                 uint256 carry = _carry(game, m, c.attacking.research);
                 if (c.weakTarget) carry /= 2;
-                m.loot = IVillages(game).armyLoot(m.target, carry);
+                m.loot = abi.decode(
+                    ModuleCalls.invoke(
+                        address(IVillages(game)),
+                        abi.encodeCall(IVillages(game).armyLoot, (m.target, carry)),
+                        128
+                    ),
+                    (uint256[4])
+                );
                 uint256 damage = G.min(2, uint256(m.units[5]) / 20);
-                if (damage != 0) IVillages(game).armyDamageWalls(m.target, uint8(damage));
+                if (damage != 0) {
+                    ModuleCalls.invoke(
+                        address(IVillages(game)),
+                        abi.encodeCall(IVillages(game).armyDamageWalls, (m.target, uint8(damage))),
+                        0
+                    );
+                }
             }
             if (!c.weakTarget) {
-                IVillages(game).armyRecord(m.target, 3, c.attackerLost);
+                ModuleCalls.invoke(
+                    address(IVillages(game)),
+                    abi.encodeCall(IVillages(game).armyRecord, (m.target, 3, c.attackerLost)),
+                    0
+                );
                 _xp(game, m.target, c.attackerLost / 20);
             }
         }
         if (!c.weakTarget) {
-            IVillages(game).armyRecord(m.owner, 2, c.defenderLost);
+            ModuleCalls.invoke(
+                address(IVillages(game)),
+                abi.encodeCall(IVillages(game).armyRecord, (m.owner, 2, c.defenderLost)),
+                0
+            );
             _xp(game, m.owner, c.defenderLost / 20);
         }
         uint256 totalLoot = m.loot[0] + m.loot[1] + m.loot[2] + m.loot[3];
-        if (totalLoot != 0) IVillages(game).armyRecord(m.owner, 4, totalLoot);
-        w.reports[id] = Report(
-            uint64(block.timestamp),
-            c.attack,
-            c.defense,
-            c.attackerLost,
-            c.defenderLost,
-            m.loot,
-            c.decisive,
-            false
-        );
+        if (totalLoot != 0) {
+            ModuleCalls.invoke(
+                address(IVillages(game)),
+                abi.encodeCall(IVillages(game).armyRecord, (m.owner, 4, totalLoot)),
+                0
+            );
+        }
+        Report storage result = w.reports[id];
+        result.resolvedAt = uint64(block.timestamp);
+        result.attack = c.attack;
+        result.defense = c.defense;
+        result.attackerLostValue = c.attackerLost;
+        result.defenderLostValue = c.defenderLost;
+        result.loot = m.loot;
+        result.decisive = c.decisive;
+        result.cancelled = false;
         emit Battle(game, id, c.attack, c.defense, c.attackerLost, c.defenderLost, c.decisive);
     }
 
     function _campDay() private view returns (uint256) {
-        return ledger.currentDay() - ledger.dayAt(seasonStartedAt);
+        return abi.decode(
+            ModuleCalls.read(address(ledger), abi.encodeCall(ledger.currentDay, ()), 32), (uint256)
+        )
+            - abi.decode(
+            ModuleCalls.read(address(ledger), abi.encodeCall(ledger.dayAt, (seasonStartedAt)), 32), (uint256)
+        );
     }
 
     function campParameters(uint16 id) public view returns (uint256 defense, uint256 hourlyStock) {
-        require(id < 200, "Invalid camp");
-        uint256 size = [uint256(60), 100, 150][id % 3];
+        require(id < 200, E.InvalidCamp());
+        uint256 size = ((uint256(0x96643c) >> (8 * uint256(id % 3))) & 255);
         uint256 day = _campDay();
         defense = G.min(4000, 150 + 40 * day) * size / 100;
         hourlyStock = (20 + 2 * day) * UNIT * size / 100;
@@ -639,12 +731,15 @@ contract Army is Guard {
 
     /// @dev Integral of the daily stepwise camp rate, anchored to the 04:00 UTC season day.
     function _campIntegral(uint16 id, uint256 timestamp) private view returns (uint256) {
-        uint256 epoch = ledger.dayAt(seasonStartedAt) * 1 days + 4 hours;
+        uint256 epoch = abi.decode(
+                ModuleCalls.read(address(ledger), abi.encodeCall(ledger.dayAt, (seasonStartedAt)), 32),
+                (uint256)
+            ) * 1 days + 4 hours;
         uint256 elapsed = timestamp >= epoch ? timestamp - epoch : 0;
         uint256 days_ = elapsed / 1 days;
         uint256 weightedSeconds =
             (days_ * days_ + 19 * days_) * 1 days + (20 + 2 * days_) * (elapsed % 1 days);
-        return weightedSeconds * UNIT * [uint256(60), 100, 150][id % 3] / 100 / 3600;
+        return weightedSeconds * UNIT * ((uint256(0x96643c) >> (8 * uint256(id % 3))) & 255) / 100 / 3600;
     }
 
     function _refreshCamp(Camp storage c, uint16 id) private {
@@ -663,5 +758,28 @@ contract Army is Guard {
             c.stock[i] = G.min(rate * 24, c.stock[i] + produced);
         }
         c.lastStock = uint64(block.timestamp);
+    }
+
+    function _context(address game, address who) private view returns (G.Context memory) {
+        return abi.decode(
+            ModuleCalls.read(game, abi.encodeCall(IVillages(game).armyContext, (who)), 288), (G.Context)
+        );
+    }
+
+    function _sameClan(address game, address a, address b) private view returns (bool) {
+        return abi.decode(
+            ModuleCalls.read(address(clans), abi.encodeCall(clans.sameClan, (game, a, b)), 32), (bool)
+        );
+    }
+
+    function _unitStats(uint8 kind)
+        private
+        view
+        returns (uint256, uint256, uint256, uint256, uint256, uint256)
+    {
+        return abi.decode(
+            ModuleCalls.read(address(rules), abi.encodeCall(rules.unitStats, (kind)), 192),
+            (uint256, uint256, uint256, uint256, uint256, uint256)
+        );
     }
 }

@@ -88,6 +88,9 @@ contract SeedLedgerTest is GameTest {
         vm.warp(vm.getBlockTimestamp() + 1 days);
         vm.expectRevert(SeedLedger.WorkDecreased.selector);
         ledger.checkpoint();
+        vm.expectRevert(SeedLedger.WorkDecreased.selector);
+        _found(carol, "Carol");
+        assertEq(game.villageCount(), 2);
         vm.prank(owner);
         ledger.proposeRepoint(address(core), address(nft));
         vm.warp(vm.getBlockTimestamp() + 72 hours);

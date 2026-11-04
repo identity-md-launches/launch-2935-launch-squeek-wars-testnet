@@ -737,6 +737,11 @@
   },
   {
     "type": "error",
+    "name": "AlreadyRegisteredOrInvalidPlayer",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ExternalReadFailed",
     "inputs": []
   },
@@ -748,6 +753,16 @@
   {
     "type": "error",
     "name": "InvalidAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidIntegralQuery",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRefund",
     "inputs": []
   },
   {

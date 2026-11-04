@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {GameErrors as E} from "./libraries/GameErrors.sol";
+
 import {GameTypes as G} from "./libraries/GameTypes.sol";
 
 /// @notice Stateless, immutable economy tables. Amounts are millionths of one game resource.
@@ -12,7 +14,7 @@ contract GameRules {
     uint256 public constant NFT_COUNT_PRECISION = 32;
 
     function grow(uint256 base, uint256 n, uint256 d, uint256 exponent) public pure returns (uint256) {
-        require(exponent <= 20, "Exponent out of bounds");
+        require(exponent <= 20, E.ExponentOutOfBounds());
         for (uint256 i; i < exponent; ++i) {
             base = base * n / d;
         }
@@ -24,15 +26,12 @@ contract GameRules {
         pure
         returns (uint256[4] memory cost, uint256 seconds_)
     {
-        require(field < 8 && level > 0 && level <= 10, "Invalid field");
-        uint256[4][4] memory bases = [
-            [uint256(30), 50, 45, 40],
-            [uint256(45), 20, 50, 45],
-            [uint256(45), 45, 20, 50],
-            [uint256(50), 45, 45, 10]
-        ];
+        require(field < 8 && level > 0 && level <= 10, E.InvalidField());
+        // Each column packs the original costs in 8-bit entries, lowest entry first.
+        uint256[4] memory bases =
+            [uint256(0x322d2d1e), uint256(0x2d2d1432), uint256(0x2d14322d), uint256(0xa322d28)];
         for (uint256 i; i < 4; ++i) {
-            cost[i] = grow(bases[field / 2][i] * UNIT, 16, 10, level - 1);
+            cost[i] = grow(((bases[i] >> (8 * uint256(field / 2))) & 255) * UNIT, 16, 10, level - 1);
         }
         seconds_ = grow(1440 * UNIT, 14, 10, level - 1) / UNIT;
     }
@@ -44,20 +43,14 @@ contract GameRules {
     {
         require(
             kind < 11 && level > 0 && level <= ((kind == G.STORE || kind == G.VAULT) ? 20 : 10),
-            "Invalid building"
+            E.InvalidBuilding()
         );
-        uint256[4][11] memory bases = [
-            [uint256(180), 170, 180, 170],
-            [uint256(80), 60, 220, 140],
-            [uint256(100), 110, 90, 100],
-            [uint256(110), 100, 100, 90],
-            [uint256(70), 60, 80, 50],
-            [uint256(70), 110, 70, 50],
-            [uint256(150), 150, 130, 170],
-            [uint256(160), 160, 170, 210],
-            [uint256(130), 110, 140, 260],
-            [uint256(190), 200, 180, 130],
-            [uint256(150), 200, 150, 150]
+        // Each column packs the original costs in 16-bit entries, lowest entry first.
+        uint256[4] memory bases = [
+            uint256(0x9600be008200a0009600460046006e0064005000b4),
+            uint256(0xc800c8006e00a00096006e003c0064006e003c00aa),
+            uint256(0x9600b4008c00aa0082004600500064005a00dc00b4),
+            uint256(0x960082010400d200aa00320032005a0064008c00aa)
         ];
         uint256 growth = 162;
         uint256 duration = 2160;
@@ -82,7 +75,7 @@ contract GameRules {
             duration = 1800;
         }
         for (uint256 i; i < 4; ++i) {
-            cost[i] = grow(bases[kind][i] * UNIT, growth, 100, level - 1);
+            cost[i] = grow(((bases[i] >> (16 * uint256(kind))) & 65535) * UNIT, growth, 100, level - 1);
         }
         seconds_ = grow(duration * UNIT, timeGrowth, 100, level - 1) / UNIT;
     }
@@ -92,23 +85,23 @@ contract GameRules {
         pure
         returns (uint256[4] memory cost, uint256 seed, uint256 seconds_, uint8 academy)
     {
-        require(tier > 0 && tier <= 5, "Invalid tier");
+        require(tier > 0 && tier <= 5, E.InvalidTier());
         uint256 each = grow(150 * UNIT, 22, 10, tier - 1);
         for (uint256 i; i < 4; ++i) {
             cost[i] = each;
         }
         seed = 300 * UNIT * (2 ** (tier - 1));
         seconds_ = grow(7200 * UNIT, 18, 10, tier - 1) / UNIT;
-        academy = [uint8(1), 2, 4, 6, 8][tier - 1];
+        academy = uint8(((uint256(0x806040201) >> (8 * uint256(tier - 1))) & 255));
     }
 
     function fieldRate(uint8 level) external pure returns (uint256) {
-        require(level > 0 && level <= 10, "Invalid field level");
+        require(level > 0 && level <= 10, E.InvalidFieldLevel());
         return grow(18 * UNIT, 14, 10, level - 1);
     }
 
     function capacity(uint8 kind, uint8 level) public pure returns (uint256 total) {
-        require(kind < 3 && level <= (kind == 2 ? 10 : 20), "Invalid capacity");
+        require(kind < 3 && level <= (kind == 2 ? 10 : 20), E.InvalidCapacity());
         total = kind == 0 ? 1500 * UNIT : kind == 1 ? 300 * UNIT : 30;
         for (uint256 i = 1; i <= level; ++i) {
             total += kind == 2
@@ -122,7 +115,7 @@ contract GameRules {
         pure
         returns (uint256)
     {
-        require(townHall > 0 && townHall <= 10, "Invalid town hall");
+        require(townHall > 0 && townHall <= 10, E.InvalidTownHall());
         nftCount = G.min(nftCount, NFT_COUNT_PRECISION);
         uint256 workFactor = G.min(work, 11000) * UNIT / 11000;
         uint256 reduction = 300_000 * (UNIT - UNIT / (uint256(1) << nftCount)) / UNIT * workFactor / UNIT;
@@ -142,13 +135,13 @@ contract GameRules {
             uint256 seconds_
         )
     {
-        require(kind < 7, "Invalid unit");
-        attack = [uint256(40), 20, 15, 75, 90, 30, 0][kind];
-        defense = [uint256(35), 15, 70, 20, 50, 10, 5][kind];
-        speed = [uint256(6), 8, 5, 6, 14, 3, 16][kind];
-        carry = [uint256(50), 120, 20, 40, 80, 0, 0][kind];
-        room = [uint256(1), 1, 1, 1, 2, 4, 1][kind];
-        seconds_ = [uint256(15), 12, 18, 20, 35, 70, 8][kind] * 60;
+        require(kind < 7, E.InvalidUnit());
+        attack = ((uint256(0x1e5a4b0f1428) >> (8 * uint256(kind))) & 255);
+        defense = ((uint256(0x50a3214460f23) >> (8 * uint256(kind))) & 255);
+        speed = ((uint256(0x10030e06050806) >> (8 * uint256(kind))) & 255);
+        carry = ((uint256(0x5028147832) >> (8 * uint256(kind))) & 255);
+        room = ((uint256(0x1040201010101) >> (8 * uint256(kind))) & 255);
+        seconds_ = ((uint256(0x8462314120c0f) >> (8 * uint256(kind))) & 255) * 60;
     }
 
     function unitQuote(uint8 kind, uint8 barracks, uint8 tier, uint32 count)
@@ -157,20 +150,21 @@ contract GameRules {
         returns (uint256[4] memory cost, uint256 duration, uint256 rooms)
     {
         require(
-            kind < 7 && barracks > 0 && barracks <= 10 && count > 0 && count <= MAX_TROOPS, "Invalid training"
+            kind < 7 && barracks > 0 && barracks <= 10 && count > 0 && count <= MAX_TROOPS,
+            E.InvalidTraining()
         );
-        require(tier >= [uint8(0), 1, 2, 2, 3, 4, 2][kind], "Research required");
-        uint256[4][7] memory bases = [
-            [uint256(50), 45, 45, 40],
-            [uint256(55), 55, 30, 20],
-            [uint256(60), 45, 70, 45],
-            [uint256(55), 55, 35, 100],
-            [uint256(120), 130, 90, 170],
-            [uint256(320), 140, 300, 170],
-            [uint256(30), 40, 20, 40]
+        require(
+            tier >= uint8(((uint256(0x2040302020100) >> (8 * uint256(kind))) & 255)), E.ResearchRequired()
+        );
+        // Each column packs the original costs in 16-bit entries, lowest entry first.
+        uint256[4] memory bases = [
+            uint256(0x1e014000780037003c00370032),
+            uint256(0x28008c00820037002d0037002d),
+            uint256(0x14012c005a00230046001e002d),
+            uint256(0x2800aa00aa0064002d00140028)
         ];
         for (uint256 i; i < 4; ++i) {
-            cost[i] = bases[kind][i] * UNIT * count;
+            cost[i] = ((bases[i] >> (16 * uint256(kind))) & 65535) * UNIT * count;
         }
         (,,,, uint256 room, uint256 time_) = unitStats(kind);
         rooms = room * count;
@@ -178,7 +172,7 @@ contract GameRules {
     }
 
     function unitValue(uint8 kind) external pure returns (uint256) {
-        require(kind < 7, "Invalid unit");
-        return [uint256(180), 160, 220, 245, 510, 930, 130][kind];
+        require(kind < 7, E.InvalidUnit());
+        return ((uint256(0x8203a201fe00f500dc00a000b4) >> (16 * uint256(kind))) & 65535);
     }
 }

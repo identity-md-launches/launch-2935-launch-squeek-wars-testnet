@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
+import {GameErrors as E} from "../src/libraries/GameErrors.sol";
 import {GameTest} from "./helpers/GameTest.sol";
 import {Villages} from "../src/Villages.sol";
 import {SeedLedger} from "../src/SeedLedger.sol";
@@ -24,17 +25,17 @@ contract VillagesTest is GameTest {
     }
 
     function testNamesUniqueCaseInsensitiveFinalAndWalletUnique() public {
-        vm.expectRevert("Name taken");
+        vm.expectRevert(E.NameTaken.selector);
         _found(carol, "aLiCe");
         vm.expectRevert(Villages.InvalidAction.selector);
         _found(alice, "Other");
-        vm.expectRevert("Invalid name length");
+        vm.expectRevert(E.InvalidNameLength.selector);
         _found(carol, "ab");
-        vm.expectRevert("Invalid name length");
+        vm.expectRevert(E.InvalidNameLength.selector);
         _found(carol, "abcdefghijklmnopq");
-        vm.expectRevert("Invalid name character");
+        vm.expectRevert(E.InvalidNameCharacter.selector);
         _found(carol, "bad name");
-        vm.expectRevert("Invalid name character");
+        vm.expectRevert(E.InvalidNameCharacter.selector);
         _found(carol, unicode"Squéek");
         _found(carol, "Carol_9");
         assertEq(game.village(carol).name, "Carol_9");
@@ -87,7 +88,7 @@ contract VillagesTest is GameTest {
         assertEq(game.seedBalance(alice), beforeSeed - order.seed);
         vm.expectRevert(Villages.NotReady.selector);
         game.completeBuild(alice, 0);
-        vm.expectRevert("Already building target");
+        vm.expectRevert(E.AlreadyBuildingTarget.selector);
         vm.prank(alice);
         game.orderBuild(8 + G.TH, 1);
         uint256[4] memory beforeStock = game.stock(alice);
@@ -123,16 +124,16 @@ contract VillagesTest is GameTest {
         vm.warp(ready);
         game.completeBuild(alice, 0);
         game.completeBuild(alice, 1);
-        vm.expectRevert("No plot available");
+        vm.expectRevert(E.NoPlotAvailable.selector);
         vm.prank(alice);
         game.orderBuild(8 + G.STORE, 0);
-        vm.expectRevert("Research Vault first");
+        vm.expectRevert(E.ResearchVaultFirst.selector);
         vm.prank(alice);
         game.orderBuild(8 + G.VAULT, 0);
-        vm.expectRevert("Research tier 2 first");
+        vm.expectRevert(E.ResearchTier2First.selector);
         vm.prank(alice);
         game.orderBuild(8 + G.FORGE, 0);
-        vm.expectRevert("Field capped by Town Hall");
+        vm.expectRevert(E.FieldCappedByTownHall.selector);
         vm.prank(alice);
         game.orderBuild(0, 0);
     }
@@ -141,7 +142,7 @@ contract VillagesTest is GameTest {
         _build(alice, 8 + G.BARRACKS);
         vm.prank(alice);
         game.orderBuild(8 + G.ACADEMY, 0);
-        vm.expectRevert("No plot available");
+        vm.expectRevert(E.NoPlotAvailable.selector);
         vm.prank(alice);
         game.orderBuild(8 + G.STORE, 1);
     }
@@ -155,7 +156,7 @@ contract VillagesTest is GameTest {
         game.orderResearch();
         vm.expectRevert(Villages.NotReady.selector);
         game.completeResearch(alice);
-        vm.expectRevert("Research busy");
+        vm.expectRevert(E.ResearchBusy.selector);
         vm.prank(alice);
         game.orderResearch();
         vm.warp(game.study(alice).readyAt);
@@ -165,7 +166,7 @@ contract VillagesTest is GameTest {
         assertEq(c.research, 900 * U);
         vm.expectRevert(Villages.NotReady.selector);
         game.completeResearch(alice);
-        vm.expectRevert("Academy too low");
+        vm.expectRevert(E.AcademyTooLow.selector);
         vm.prank(alice);
         game.orderResearch();
     }
@@ -185,13 +186,13 @@ contract VillagesTest is GameTest {
         for (uint8 i; i < 4; ++i) {
             assertEq(game.stock(bob)[i], bobBefore[i]);
         }
-        vm.expectRevert("Invalid exchange");
+        vm.expectRevert(E.InvalidExchange.selector);
         vm.prank(alice);
         game.exchange(0, 4, 1);
-        vm.expectRevert("Invalid exchange");
+        vm.expectRevert(E.InvalidExchange.selector);
         vm.prank(alice);
         game.exchange(1, 1, 1);
-        vm.expectRevert("Invalid exchange");
+        vm.expectRevert(E.InvalidExchange.selector);
         vm.prank(alice);
         game.exchange(0, 1, 0);
     }
@@ -199,7 +200,7 @@ contract VillagesTest is GameTest {
     function testTreasuryBoostExpiryNoRetroactiveBonusAndNoStacking() public {
         vm.prank(alice);
         game.treasury(0, 0);
-        vm.expectRevert("Boost active or invalid resource");
+        vm.expectRevert(E.BoostActiveOrInvalidResource.selector);
         vm.prank(alice);
         game.treasury(0, 1);
         vm.warp(vm.getBlockTimestamp() + 1 hours);
@@ -208,7 +209,7 @@ contract VillagesTest is GameTest {
         assertEq(game.seedBalance(alice), 1000 * U);
         vm.prank(alice);
         game.treasury(2, 0);
-        vm.expectRevert("Banner already owned");
+        vm.expectRevert(E.BannerAlreadyOwned.selector);
         vm.prank(alice);
         game.treasury(2, 0);
         assertTrue(game.village(alice).banner);
@@ -226,7 +227,7 @@ contract VillagesTest is GameTest {
         game.treasury(1, 0);
         assertEq(game.village(alice).shieldUntil, vm.getBlockTimestamp() + 12 hours);
         vm.warp(vm.getBlockTimestamp() + 12 hours);
-        vm.expectRevert("Peace cooldown");
+        vm.expectRevert(E.PeaceCooldown.selector);
         vm.prank(alice);
         game.treasury(1, 0);
         vm.warp(vm.getBlockTimestamp() + 60 hours);
@@ -241,7 +242,7 @@ contract VillagesTest is GameTest {
         game.claimSeed();
         uint256 seed = game.seedBalance(alice);
         uint64 founding = game.village(alice).shieldUntil;
-        vm.expectRevert("Shield already active");
+        vm.expectRevert(E.ShieldAlreadyActive.selector);
         vm.prank(alice);
         game.treasury(1, 0);
         assertEq(game.seedBalance(alice), seed);
@@ -362,7 +363,7 @@ contract VillagesTest is GameTest {
         _build(alice, 8 + G.MARKET);
         vm.warp(vm.getBlockTimestamp() + 2 days);
         uint256 seed = game.seedBalance(alice);
-        vm.expectRevert("Insufficient storage");
+        vm.expectRevert(E.InsufficientStorage.selector);
         vm.prank(alice);
         game.exchange(4, 0, 1);
         assertEq(game.seedBalance(alice), seed);

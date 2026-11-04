@@ -581,5 +581,70 @@
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AlreadyInClan",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotJoin",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotRaiseCapacity",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ClanFullOrMissing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ClanHall3Required",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ClanNameTaken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FounderLeavesLast",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCounter",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidNameCharacter",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidNameLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotInClan",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotInvited",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyFounderInvites",
+    "inputs": []
   }
 ]

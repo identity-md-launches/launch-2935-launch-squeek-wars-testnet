@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {GameErrors as E} from "./libraries/GameErrors.sol";
+
 import {GameTypes as G} from "./libraries/GameTypes.sol";
 
 /// @notice Caller-scoped clans and season/week counters; canonical caller is Villages.
@@ -81,17 +83,17 @@ contract Clans {
         view
         returns (uint256)
     {
-        Counters memory c = weekly ? worlds[game].weeklyCounters[week_][player] : worlds[game].season[player];
+        Counters storage c = weekly ? worlds[game].weeklyCounters[week_][player] : worlds[game].season[player];
         uint256 build = c.build / (100 * UNIT);
         return build + c.research / (100 * UNIT) + G.min(build, (c.attack + c.defense) / 200);
     }
 
     function found(address player, string calldata name, uint8 hall) external returns (uint256 id) {
-        require(hall >= 3 && hall <= 10, "Clan Hall 3 required");
+        require(hall >= 3 && hall <= 10, E.ClanHall3Required());
         World storage w = worlds[msg.sender];
-        require(w.membership[player] == 0 && player != address(0), "Already in clan");
+        require(w.membership[player] == 0 && player != address(0), E.AlreadyInClan());
         bytes32 key = G.nameKey(name, 24);
-        require(!w.names[key], "Clan name taken");
+        require(!w.names[key], E.ClanNameTaken());
         w.names[key] = true;
         id = ++w.nextClan;
         Clan storage c = w.clans[id];
@@ -106,9 +108,9 @@ contract Clans {
     function join(address player, uint256 id, uint8 hall) external {
         World storage w = worlds[msg.sender];
         Clan storage c = w.clans[id];
-        require(hall >= 1 && player != address(0) && w.membership[player] == 0, "Cannot join");
-        require(c.founder != address(0) && c.members.length < c.capacity, "Clan full or missing");
-        require(w.invited[id][player], "Not invited");
+        require(hall >= 1 && player != address(0) && w.membership[player] == 0, E.CannotJoin());
+        require(c.founder != address(0) && c.members.length < c.capacity, E.ClanFullOrMissing());
+        require(w.invited[id][player], E.NotInvited());
         delete w.invited[id][player];
         w.membership[player] = id;
         c.members.push(player);
@@ -119,7 +121,7 @@ contract Clans {
     function invite(address founder, address player, bool open) external {
         World storage w = worlds[msg.sender];
         uint256 id = w.membership[founder];
-        require(id != 0 && w.clans[id].founder == founder && player != address(0), "Only founder invites");
+        require(id != 0 && w.clans[id].founder == founder && player != address(0), E.OnlyFounderInvites());
         w.invited[id][player] = open;
         emit Invited(msg.sender, id, player, open);
     }
@@ -128,8 +130,8 @@ contract Clans {
         World storage w = worlds[msg.sender];
         uint256 id = w.membership[player];
         Clan storage c = w.clans[id];
-        require(id != 0, "Not in clan");
-        require(c.founder != player || c.members.length == 1, "Founder leaves last");
+        require(id != 0, E.NotInClan());
+        require(c.founder != player || c.members.length == 1, E.FounderLeavesLast());
         for (uint256 i; i < c.members.length; ++i) {
             if (c.members[i] == player) {
                 c.members[i] = c.members[c.members.length - 1];
@@ -147,14 +149,14 @@ contract Clans {
         uint256 id = w.membership[player];
         Clan storage c = w.clans[id];
         require(
-            id != 0 && c.founder == player && hall <= 10 && hall * 3 > c.capacity, "Cannot raise capacity"
+            id != 0 && c.founder == player && hall <= 10 && hall * 3 > c.capacity, E.CannotRaiseCapacity()
         );
         c.capacity = hall * 3;
         emit CapacityRaised(msg.sender, id, c.capacity);
     }
 
     function record(address player, uint8 kind, uint256 amount) external {
-        require(kind < 5, "Invalid counter");
+        require(kind < 5, E.InvalidCounter());
         _add(worlds[msg.sender].season[player], kind, amount);
         uint256 week_ = week();
         _add(worlds[msg.sender].weeklyCounters[week_][player], kind, amount);

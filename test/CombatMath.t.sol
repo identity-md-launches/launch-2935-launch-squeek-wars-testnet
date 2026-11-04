@@ -209,6 +209,23 @@ contract CombatMathTest is GameTest {
         assertEq(rate, 22 * U);
     }
 
+    function testEveryPackedCampSizeMatchesOriginalTableAcrossSeason() public {
+        uint256 startDay = ledger.dayAt(army.seasonStartedAt());
+        uint256[4] memory days_ = [uint256(0), 1, 96, 1000];
+        uint256[3] memory sizes = [uint256(60), 100, 150];
+        for (uint256 dayIndex; dayIndex < days_.length; ++dayIndex) {
+            uint256 day = days_[dayIndex];
+            vm.warp((startDay + day) * 1 days + 4 hours);
+            for (uint16 id; id < 200; ++id) {
+                (uint256 defense, uint256 rate) = army.campParameters(id);
+                uint256 rawDefense = 150 + 40 * day;
+                if (rawDefense > 4000) rawDefense = 4000;
+                assertEq(defense, rawDefense * sizes[id % 3] / 100);
+                assertEq(rate, (20 + 2 * day) * U * sizes[id % 3] / 100);
+            }
+        }
+    }
+
     function testCampProductionUsesBothRatesAcrossFourUTC() public {
         uint16 destination = game.campTile(0);
         world.configure(alice, G.Context(true, destination + 1, 10, 10, 10, 10, 5, 4_000_000, 0));

@@ -1132,7 +1132,132 @@
   },
   {
     "type": "error",
+    "name": "CannotRecallSupport",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ChampionAway",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DailyRaidLimit",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientBurrowRoom",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientChampionPoints",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientTroops",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCamp",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCampMovement",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidDependency",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidMovement",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSupport",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTravel",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTroopCount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingSupport",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingTarget",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingVillage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MovementNotArrived",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyScoutsReconnoitre",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PointsCannotBeReassigned",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "Reentrancy",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ScoutsTravelAlone",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StatCap",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SupportStillAllied",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TargetProtected",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TrainingBusyOrMissingVillage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TrainingNotReady",
     "inputs": []
   }
 ]

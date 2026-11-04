@@ -22,8 +22,10 @@ contract DeploymentTest is GameTest {
     function testDeployedSizeAndReachableOpcodes() public view {
         address[5] memory apps =
             [address(game), address(army), address(ledger), address(clans), address(rules)];
+        uint256 combined;
         for (uint256 i; i < apps.length; ++i) {
             bytes memory code = apps[i].code;
+            combined += code.length;
             assertGt(code.length, 0);
             assertLe(code.length, 24576);
             bool reachable = true;
@@ -40,6 +42,7 @@ contract DeploymentTest is GameTest {
                 }
             }
         }
+        assertLe(combined, 52_000, "combined launch runtime budget");
     }
 
     function testInvalidConstructorsRejectZeroDependencies() public {

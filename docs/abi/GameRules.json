@@ -378,5 +378,55 @@
       }
     ],
     "stateMutability": "pure"
+  },
+  {
+    "type": "error",
+    "name": "ExponentOutOfBounds",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidBuilding",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCapacity",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidField",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidFieldLevel",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTier",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTownHall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTraining",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidUnit",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ResearchRequired",
+    "inputs": []
   }
 ]

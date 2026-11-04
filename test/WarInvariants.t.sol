@@ -403,6 +403,11 @@ contract WarInvariantTest is StdInvariant, EndgameTest {
                 Army.Movement memory s = army.movement(address(game), list[i]);
                 assertEq(s.mode, 5);
                 assertEq(s.target, who);
+                uint256 remaining;
+                for (uint256 k; k < 7; ++k) {
+                    remaining += s.units[k];
+                }
+                assertGt(remaining, 0, "empty support retains a slot");
                 for (uint256 j; j < i; ++j) {
                     assertTrue(list[i] != list[j], "duplicate support entry");
                 }
