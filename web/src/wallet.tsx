@@ -3,6 +3,7 @@ import { useAccount, useConnect, useDisconnect, type Connector } from "wagmi";
 import { getAccount } from "@wagmi/core";
 import { ADD_CHAIN, chain, wagmiConfig } from "./config";
 import { short } from "./game";
+import { usePlayers } from "./data";
 
 /** wallet_switchEthereumChain, falling back to wallet_addEthereumChain with network.json's parameters. */
 export async function switchToSepolia() {
@@ -41,6 +42,8 @@ export function ConnectSheet({ compact }: { compact?: boolean }) {
   const { disconnect } = useDisconnect();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
+  const players = usePlayers();
+  const name = address ? players.data?.byAddr.get(address.toLowerCase())?.name : undefined;
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
@@ -59,7 +62,9 @@ export function ConnectSheet({ compact }: { compact?: boolean }) {
     if (chainId !== chain.id) return <button className="btn btn-primary" onClick={() => switchToSepolia().catch(() => {})}>Switch to Sepolia</button>;
     return (
       <div className="acct">
-        <button className="btn btn-secondary" aria-expanded={menu} onClick={() => setMenu(!menu)}>{short(address)}</button>
+        <button className="btn btn-secondary acct-id" aria-expanded={menu} title={address} onClick={() => setMenu(!menu)}>
+          {name && <span className="acct-name">{name}</span>}<span className="acct-addr num">{short(address)}</span>
+        </button>
         {menu && <button className="btn btn-secondary acct-menu" onClick={() => { setMenu(false); disconnect(); }}>Disconnect</button>}
       </div>
     );

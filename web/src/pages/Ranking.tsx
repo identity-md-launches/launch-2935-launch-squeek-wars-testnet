@@ -46,7 +46,8 @@ export function RankingPage({ me }: { me?: Address }) {
       <div className="tabs" role="group" aria-label="Category">
         {TABS.map((t) => <button key={t} className={`tab${tab === t ? " on" : ""}`} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
       </div>
-      {rows.isLoading || players.isLoading ? <p className="muted">Reading every village's counters...</p> : rows.error ? <p className="hint bad">Could not read the rankings. Retrying.</p> : data.length === 0 ? <Need>No villages yet. <a href="#/enter">Found the first one.</a></Need> : tab === "Clans" ? (
+      {/* "No villages yet" only for a successful, empty read; any failed prerequisite without data is a retry state */}
+      {(rows.error && !rows.data) || (players.error && !players.data) || (g.error && !g.data) ? <p className="hint bad">Could not read the rankings. Retrying.</p> : !rows.data ? <p className="muted">Reading every village's counters...</p> : data.length === 0 ? <Need>No villages yet. <a href="#/enter">Found the first one.</a></Need> : tab === "Clans" ? (
         clanTotals.length === 0 ? <Need>No clans yet.</Need> : (
           <div className="table-wrap"><table>
             <thead><tr><th>#</th><th>Clan</th><th className="r">Overall</th></tr></thead>

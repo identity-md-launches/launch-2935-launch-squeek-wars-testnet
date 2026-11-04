@@ -17,6 +17,41 @@ python3 tools/export_abi.py --check
 
 The existing fuzz seed remains pinned to `0x212fae3293255b694ea7d1187d431edf2e8880f53f41a8696524766e24a60e26`. Fuzz tests run 256 cases; stateful invariants run 128 sequences of 64 actions. Tests use local mocks, explicit addresses, and virtual time; no environment variables, wallets, RPC, or real-time waits are needed. The adaptation also checks the assignment seed `0x06950b38af9f384b8df56e3fc33d7983649c01bf0e0bd48b5e8558383eade2b3`. Existing per-test fuzz and war-invariant settings are preserved. See [validation](docs/VALIDATION.md).
 
+## Website (`web/` source, `dist/` static export)
+
+The Squeek Wars Testnet site is a static Vite + React + TypeScript app. It reads Sepolia from the
+browser through the public RPCs in `web/src/config.ts`, falling back between them, and caches
+`eth_getLogs` chunks from block 12060202 in `localStorage`. The player's own wallet signs every
+action. There is no server, indexer, key or analytics. Design tokens and components are described in [DESIGN.md](DESIGN.md).
+
+```sh
+cd web
+npm ci              # install exactly what web/package-lock.json pins
+npm run typecheck   # tsc --noEmit
+npm run build       # tsc --noEmit && vite build -> ../dist (base "./", relative asset URLs)
+npm run preview     # serve ../dist locally
+npm run dev         # development server
+```
+
+`dist/` is committed and is what gets pinned to IPFS. Rebuild it after every source change. Routes
+use the hash (`#/village`, `#/map`, ...), so the export works at a gateway subpath or an ENS name.
+
+### Validation of the latest revision
+
+This revision fixes eight review findings in `web/src`: loot amounts in battle reports from
+`Army.report`, plain-English errors forwarded from Army/Clans/SeedLedger, current camp stock and
+defense, Scout-only support, the boost-expiry rate, Ranking error states, name + short address in the
+header/village/map, and the Rules champion/training text. Each one is answered in `.imd-responses.json`.
+
+Limitation, stated plainly: the shell sandbox on the worker failed to start for the whole of this
+revision ("Failed to create bridge sockets"). So `npm run typecheck`, `npm run build`, the interaction
+tests and the design-critic probe (`taste.mjs`) were **not run**, and `dist/` is **still the export
+from the previous accepted build**: it does not contain this revision's fixes. Each change was checked
+only by reading it against the contract source (`src/Army.sol`, `src/Villages.sol`,
+`src/SeedLedger.sol`) and `docs/ECONOMY.md`. Before publishing, run the commands above from `web/`
+to regenerate `dist/`. No rendered check, screenshot or contrast measurement was made in this
+revision. That includes the 320px fit of the new two-line wallet button.
+
 ## Contracts and deployment parameters
 
 Deploy these five contracts, in this order, in the launch's single factory transaction. All constructors are nonpayable, use only static arguments, and make no external calls or code-existence checks.

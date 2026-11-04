@@ -50,13 +50,13 @@ export function Rules() {
       <h2>Research</h2>
       <p>Five tiers, one at a time, needing Academy 1, 2, 4, 6 and 8. Tier 1 unlocks Forager and Vault; tier 2 Shieldbearer, Berserker, Scout, Forge and Clan Hall; tier 3 Charger and Logistics; tier 4 Catapult and Field Medicine; tier 5 Logistics II and Forced March.</p>
       <h2>Troops and battle</h2>
-      <p>Training reserves Burrow room immediately and is 10% faster per Barracks level. Attack is the sum of troop attack, raised 2% per Forge level and by your champion. Defense adds home troops, clan support, the home champion, 4% per Walls level and 40 per Town Hall level. Each side loses min(1, 0.5 × enemy ÷ own) of its army. An attack at least twice the defense is decisive: it wipes the garrison, loots and damages Walls. Loot is split over four resources and only taken above the target's Vault protection. You may raid the same target three times per game day.</p>
+      <p>Training reserves Burrow room immediately. Each Barracks level above 1 multiplies training time by 0.9. Attack is the sum of troop attack, raised 2% per Forge level and by your champion. Defense adds home troops, clan support, the home champion, 4% per Walls level and 40 per Town Hall level. Each side loses min(1, 0.5 × enemy ÷ own) of its army. An attack at least twice the defense is decisive: it wipes the garrison, loots and damages Walls. Loot is split over four resources and only taken above the target's Vault protection. You may raid the same target three times per game day.</p>
       <h2>Scouting, support and camps</h2>
       <p>Scouts travel alone. If at least one survives, your raids on that target get a scouting bonus for 12 hours. Support goes only to clanmates and defends their village. The 200 wild camps grow stronger and richer each day and regrow 24 hours after the first damaging raid.</p>
       <h2>Market and treasury</h2>
       <p>The Market burns 100 of a resource or SEED for 25 + 5 × (Market − 1) of another resource. The treasury sells a 24-hour +25% output boost (500 SEED), a 12-hour peace shield once every three days (4,000 SEED) and a cosmetic banner (1,000 SEED).</p>
       <h2>Champion</h2>
-      <p>Your champion's level is min(30, 1 + √(XP ÷ 100)) and each level gives four points for Might, attack, defense and carry (20 points each at most). Points never move once placed. Holding a Squeek multiplies XP and champion stats by 1.1.</p>
+      <p>Champion level is min(30, 1 + floor(√(XP ÷ 100))). Each level gained after level 1 grants four permanent points. Attack, defense and carry cap at 20 points each; Might can use the remaining points. Points never move once placed. Holding a Squeek multiplies XP and champion stats by 1.1.</p>
       <h2>Ranking</h2>
       <p>Overall = build + research + min(build, (attack + defense) ÷ 200), where build and research are completed spending ÷ 100 and attack and defense are the resource value of troops you destroyed. Loot counts resources taken. Season counters never reset; weekly counters use seven-day windows from launch.</p>
     </article>

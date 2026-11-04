@@ -109,22 +109,33 @@ export function useVillage(who?: Address, enabled = true) {
   });
 }
 
-/** Per-second production from on-chain field rates, Wheelhouse bonus, boost and upkeep. */
+/** Hourly production parts from on-chain field rates, Wheelhouse bonus and upkeep. The result does
+ *  not depend on the clock: whether the treasury boost is running is decided by the caller at each
+ *  tick (ratePerHour / grownSince), so the label and the interpolation drop the boost exactly at
+ *  boostUntil without waiting for a refetch. */
+export type Rate = { base: number; wheel: number; gross: number; upkeep: number; boostable: boolean };
 export function useRates(v: Village | null | undefined, lastWork: bigint | undefined) {
   return useQuery({
-    queryKey: ["rates", v?.who, v?.fields.join(","), v?.buildings[2], String(lastWork), v?.boostUntil, String(v?.used)],
+    queryKey: ["rates", v?.who, v?.fields.join(","), v?.buildings[2], String(lastWork), v?.boostUntil, v?.boostResource, String(v?.used)],
     enabled: !!v && lastWork !== undefined,
-    queryFn: async () => {
+    queryFn: async (): Promise<Rate[]> => {
       const rates = await Promise.all(v!.fields.map((l) => read<bigint>("rules", "fieldRate", [l])));
       const wheel = Math.min(Number(lastWork!) / 4320, 0.25 * v!.buildings[2]);
-      const now = Date.now() / 1000;
       return [0, 1, 2, 3].map((i) => {
         const base = Number(rates[i * 2] + rates[i * 2 + 1]) / 1e6; // units per hour
-        const boost = v!.boostUntil > now && v!.boostResource === i ? 0.25 : 0;
-        let perHour = base * (1 + wheel) * (1 + boost);
-        if (i === 1) perHour -= Number(v!.used) * 0.5;
-        return { base, perHour, wheel, boost };
+        return { base, wheel, gross: base * (1 + wheel), upkeep: i === 1 ? Number(v!.used) * 0.5 : 0, boostable: v!.boostUntil > 0 && v!.boostResource === i };
       });
     },
   });
+}
+
+/** Net hourly rate at time t: the +25% boost counts only while t < boostUntil. */
+export const ratePerHour = (r: Rate, boostUntil: number, t: number) =>
+  r.gross * (r.boostable && t < boostUntil ? 1.25 : 1) - r.upkeep;
+
+/** Units produced between two times, integrating only the boosted part of the interval. */
+export function grownSince(r: Rate, boostUntil: number, from: number, to: number) {
+  const span = Math.max(0, to - from);
+  const boosted = r.boostable ? Math.max(0, Math.min(to, boostUntil) - from) : 0;
+  return (r.gross * span + r.gross * 0.25 * boosted - r.upkeep * span) / 3600;
 }

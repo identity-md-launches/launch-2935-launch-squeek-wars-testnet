@@ -9,7 +9,7 @@ export const BUILDING_NOTE = [
   "Raises storage for every resource",
   "Protects stock from raids",
   "Room for troops",
-  "Trains troops 10% faster per level",
+  "Each level above 1 multiplies training time by 0.9",
   "Hosts research tiers",
   "+2% troop attack and defense per level",
   "Join at 1, found a clan at 3",

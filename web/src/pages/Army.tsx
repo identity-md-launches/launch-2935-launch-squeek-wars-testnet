@@ -68,6 +68,22 @@ export function ArmyPage({ me }: { me: Address }) {
   const scouted = (ev.data?.scouted ?? []).filter((s) => String(s.args.player).toLowerCase() === lower || String(s.args.target).toLowerCase() === lower).reverse();
   const loots = (ev.data?.resolved ?? []).filter((r) => myIds.has(String(r.args.id))).reverse();
   const sentById = new Map(mine.map((e) => [String(e.args.id), e]));
+  // MovementResolved carries no amounts; the persisted Report (canonical Villages namespace) keeps the
+  // loot taken in the battle, so it stays visible after the return leg resolves and empties the movement.
+  const battleIds = battles.map((b) => b.args.id as bigint);
+  const reports = useQuery({
+    queryKey: ["reports", battleIds.join()],
+    enabled: battleIds.length > 0,
+    queryFn: async () => new Map(await Promise.all(battleIds.map(async (id) => {
+      const r = await read<any[]>("army", "report", [GAME, id]);
+      return [String(id), { resolvedAt: Number(r[0]), loot: r[5] as bigint[] }] as const;
+    }))),
+  });
+  const lootLine = (id: bigint) => {
+    const r = reports.data?.get(String(id));
+    if (!r) return reports.error ? "Loot could not be read." : "Reading loot...";
+    return `Looted ${r.loot.map((x, i) => `${fmt(x)} ${RES[i]}`).join(", ")}`;
+  };
   return (
     <div className="pagegrid">
       <Panel title="Troops at home">
@@ -100,7 +116,8 @@ export function ArmyPage({ me }: { me: Address }) {
           <ul className="reports">
             {battles.map((b) => { const s = sentById.get(String(b.args.id)); return (
               <li key={`b${b.tx}${b.idx}`}><strong>Battle #{String(b.args.id)}</strong> {s && <><Who addr={s.args.owner} /> vs {String(s.args.target).startsWith("0x000000000000") ? `camp #${s.args.campId}` : <Who addr={s.args.target} />}</>}
-                <br /><span className="num">Attack {fmtInt(b.args.attack)} vs defense {fmtInt(b.args.defense)} · {b.args.decisive ? "Decisive" : "Not decisive"} · lost {fmtInt(b.args.attackerLost)} / {fmtInt(b.args.defenderLost)}</span></li>); })}
+                <br /><span className="num">Attack {fmtInt(b.args.attack)} vs defense {fmtInt(b.args.defense)} · {b.args.decisive ? "Decisive" : "Not decisive"} · lost {fmtInt(b.args.attackerLost)} / {fmtInt(b.args.defenderLost)}</span>
+                <br /><span className="num">{lootLine(b.args.id as bigint)}</span></li>); })}
             {scouted.map((s) => <li key={`s${s.tx}${s.idx}`}><strong>Scouting</strong> <Who addr={s.args.player} /> on <Who addr={s.args.target} />: {s.args.success ? `succeeded, bonus until ${new Date(Number(s.args.until) * 1000).toLocaleString()}` : "failed"}</li>)}
             {loots.map((r) => <li key={`r${r.tx}${r.idx}`}><strong>Movement #{String(r.args.id)}</strong> resolved as {MODES[Number(r.args.mode)] ?? "done"}{Number(r.args.nextArrival) ? `, next arrival ${new Date(Number(r.args.nextArrival) * 1000).toLocaleTimeString()}` : ""}</li>)}
           </ul>

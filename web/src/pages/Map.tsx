@@ -4,12 +4,42 @@ import type { Address } from "viem";
 import { read } from "../chain";
 import { GAME } from "../config";
 import { usePlayers, useVillage } from "../data";
-import { RES, UNITS, UNIT_SPEED, campSize, campTile, dur, fmt, fmtInt, tileXY } from "../game";
+import { RES, UNIT, UNITS, UNIT_SPEED, campSize, campTile, dur, fmt, fmtInt, short, tileXY } from "../game";
 import { Act } from "../tx";
 import { Panel, Who } from "../ui";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 const CAMP_BY_TILE = new Map(Array.from({ length: 200 }, (_, id) => [campTile(id), id]));
+
+/** Army._campIntegral: integral of the stepwise daily camp rate (20 + 2·day per hour, scaled by
+ *  size), anchored at 04:00 UTC of the season's first game day. Mirrored in BigInt so the result
+ *  matches the contract unit for unit. */
+const campSizePct = (id: number) => BigInt((0x96643c >> (8 * (id % 3))) & 255);
+const dayAt = (t: bigint) => (t < 14_400n ? 0n : (t - 14_400n) / 86_400n); // SeedLedger.dayAt
+export function campIntegral(id: number, t: bigint, season: bigint) {
+  const epoch = dayAt(season) * 86_400n + 14_400n;
+  const elapsed = t >= epoch ? t - epoch : 0n;
+  const d = elapsed / 86_400n;
+  const weighted = (d * d + 19n * d) * 86_400n + (20n + 2n * d) * (elapsed % 86_400n);
+  return (weighted * UNIT * campSizePct(id)) / 100n / 3600n;
+}
+
+/** What Army._refreshCamp would make of a camp at time `now`: camp() returns storage as of its last
+ *  raid, so stock regrows here from lastStock (capped at 24 hours of the current rate) and the
+ *  defense resets to campParameters once regrowAt has passed (regrowAt 0 counts as passed). */
+export function campNow(id: number, c: any[], p: any[], season: bigint, now: bigint) {
+  const initialized = c[0] as boolean;
+  const regrowAt = BigInt(c[1]);
+  const lastStock = initialized ? BigInt(c[2]) : season;
+  const [defenseToday, hourly] = [p[0] as bigint, p[1] as bigint];
+  const defense = !initialized || now >= regrowAt ? defenseToday : (c[3] as bigint);
+  const grown = campIntegral(id, now, season) - campIntegral(id, lastStock, season);
+  const produced = grown > 0n ? grown : 0n;
+  const stored = initialized ? (c[4] as bigint[]) : [0n, 0n, 0n, 0n];
+  const cap = hourly * 24n;
+  const stock = stored.map((s) => (s + produced < cap ? s + produced : cap));
+  return { defense, stock, hourly, regrowAt: initialized && now < regrowAt ? Number(regrowAt) : 0 };
+}
 
 function TileInfo({ me, tile }: { me: Address; tile: number }) {
   const players = usePlayers();
@@ -30,9 +60,10 @@ function TileInfo({ me, tile }: { me: Address; tile: number }) {
         return { kind: "village" as const, home: home.map(Number), walls: Number(walls), stock, same, shield: Number(v[4]), th: Number((v[13] as number[])[0]) };
       }
       if (campId !== undefined) {
-        const [c, p] = await Promise.all([read<any[]>("army", "camp", [GAME, campId]), read<any[]>("army", "campParameters", [campId])]);
-        const fresh = !c[0] || (Number(c[1]) > 0 && Number(c[1]) <= Date.now() / 1000);
-        return { kind: "camp" as const, defense: fresh ? (p[0] as bigint) : (c[3] as bigint), stock: c[4] as bigint[], hourly: p[1] as bigint, initialized: c[0] as boolean };
+        const [c, p, season] = await Promise.all([
+          read<any[]>("army", "camp", [GAME, campId]), read<any[]>("army", "campParameters", [campId]), read<bigint>("army", "seasonStartedAt"),
+        ]);
+        return { kind: "camp" as const, ...campNow(campId, c, p, season, BigInt(Math.floor(Date.now() / 1000))) };
       }
       return null;
     },
@@ -71,8 +102,9 @@ function TileInfo({ me, tile }: { me: Address; tile: number }) {
       {d?.kind === "camp" && (
         <dl className="kv">
           <dt>Defense</dt><dd>{fmtInt(d.defense)}</dd>
-          <dt>Stock</dt><dd>{d.initialized ? d.stock.map((s, i) => `${fmt(s)} ${RES[i]}`).join(", ") : "Untouched (grows from day zero)"}</dd>
-          <dt>Growth</dt><dd>{fmt(d.hourly)} of each per hour</dd>
+          <dt>Stock</dt><dd>{d.stock.map((s, i) => `${fmt(s)} ${RES[i]}`).join(", ")}</dd>
+          <dt>Growth</dt><dd>{fmt(d.hourly)} of each per hour, up to {fmt(d.hourly * 24n)}</dd>
+          {d.regrowAt > 0 && <><dt>Defense regrows</dt><dd>in {dur(d.regrowAt - Date.now() / 1000)}</dd></>}
         </dl>
       )}
       {!isMe && (owner || campId !== undefined) && (
@@ -93,7 +125,7 @@ function TileInfo({ me, tile }: { me: Address; tile: number }) {
           <div className="row-acts">
             <Act label="Attack" c="villages" fn="send" args={args(1)} disabled={total === 0} />
             {owner && <Act kind="secondary" label="Scout" c="villages" fn="send" args={args(2)} disabled={!onlyScouts} />}
-            {owner && d?.kind === "village" && d.same && <Act kind="secondary" label="Support" c="villages" fn="send" args={args(3)} disabled={total === 0 || units[6] === total} />}
+            {owner && d?.kind === "village" && d.same && <Act kind="secondary" label="Support" c="villages" fn="send" args={args(3)} disabled={total === 0} />}
           </div>
           {owner && <p className="muted small">Scouting takes only Scouts. Support goes only to clanmates.</p>}
         </form>
@@ -159,7 +191,7 @@ export function MapPage({ me }: { me: Address }) {
         </div>
         <p className="legend muted small"><span className="sw" style={{ background: "#f2c230" }} /> You <span className="sw" style={{ background: "#b5462e" }} /> Villages <span className="sw" style={{ background: "#7a5a3a" }} /> Wild camps. Drag to pan, tap a tile.</p>
         <label className="goto">Go to tile <select value={sel} onChange={(e) => { setSel(+e.target.value); centerOn(+e.target.value); }}>
-          {(players.data?.list ?? []).map((p) => <option key={p.addr} value={p.tile}>{p.name} ({p.tile % 100}, {Math.floor(p.tile / 100)})</option>)}
+          {(players.data?.list ?? []).map((p) => <option key={p.addr} value={p.tile}>{p.name} {short(p.addr)} ({p.tile % 100}, {Math.floor(p.tile / 100)})</option>)}
           {Array.from(CAMP_BY_TILE.entries()).slice(0, 200).map(([t, id]) => <option key={`c${id}`} value={t}>Camp #{id} ({t % 100}, {Math.floor(t / 100)})</option>)}
         </select></label>
       </Panel>

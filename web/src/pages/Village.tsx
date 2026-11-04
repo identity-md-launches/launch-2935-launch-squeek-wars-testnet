@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { read } from "../chain";
-import { useGlobal, useNow, useRates, useVillage, type Village } from "../data";
-import { BUILDINGS, BUILDING_NOTE, FIELDS, RES, dur, fmt, tileXY } from "../game";
+import { grownSince, ratePerHour, useGlobal, useNow, useRates, useVillage, type Village } from "../data";
+import { BUILDINGS, BUILDING_NOTE, FIELDS, RES, dur, fmt, short, tileXY } from "../game";
 import { Act } from "../tx";
 import { Cost, Countdown, ICON_KEYS, Panel, Pix } from "../ui";
 
@@ -77,18 +77,19 @@ export function VillagePage({ me }: { me: Address }) {
 
   return (
     <div className="pagegrid">
-      <Panel title={`${v.name} (${x}, ${y})`} actions={<span className="muted">{v.shieldUntil > now ? <>Shield <Countdown to={v.shieldUntil} /></> : "No shield"}</span>}>
+      <Panel title={`${v.name} ${short(v.who)} (${x}, ${y})`} actions={<span className="muted">{v.shieldUntil > now ? <>Shield <Countdown to={v.shieldUntil} /></> : "No shield"}</span>}>
         <ul className="res">
           {[0, 1, 2, 3].map((i) => {
             const r = rates.data?.[i];
-            const val = Math.min(cap, Math.max(0, Number(v.stock[i]) / 1e6 + (r ? (r.perHour * elapsed) / 3600 : 0)));
+            const val = Math.min(cap, Math.max(0, Number(v.stock[i]) / 1e6 + (r ? grownSince(r, v.boostUntil, v.readAt, v.readAt + elapsed) : 0)));
+            const perHour = r ? ratePerHour(r, v.boostUntil, now) : 0;
             return (
               <li key={i}>
                 <Pix name={ICON_KEYS[i]} size={28} />
                 <div>
                   <span className="res-name">{RES[i]}</span>
                   <strong className="num">{fmt(val)}</strong>
-                  <span className="muted small num">{r ? `${r.perHour >= 0 ? "+" : ""}${fmt(r.perHour, 1)}/h` : "..."} · cap {fmt(cap)}</span>
+                  <span className="muted small num">{r ? `${perHour >= 0 ? "+" : ""}${fmt(perHour, 1)}/h` : "..."} · cap {fmt(cap)}</span>
                 </div>
               </li>
             );

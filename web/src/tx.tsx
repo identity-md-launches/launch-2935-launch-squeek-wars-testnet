@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 import { useAccount } from "wagmi";
 import { writeContract } from "@wagmi/core";
 import { useQueryClient } from "@tanstack/react-query";
+import type { Abi, AbiError } from "viem";
 import { ABI, ADDR, EXPLORER, chain, wagmiConfig, type Contract } from "./config";
 import { client } from "./chain";
 import { explain } from "./errors";
@@ -11,6 +12,26 @@ export type TxState = { id: number; label: string; phase: "wallet" | "pending" |
 type Send = (label: string, c: Contract, fn: string, args?: readonly unknown[]) => Promise<boolean>;
 const Ctx = createContext<{ send: Send; txs: TxState[]; busy: (label: string) => boolean; dismiss: (id: number) => void }>(null as any);
 let seq = 0;
+
+/** Every custom error of the five game contracts. Villages forwards calls to Army, Clans and
+ *  SeedLedger and bubbles their revert data, so a Villages write can revert with an error that only
+ *  another contract's ABI defines. Simulating against the union lets viem name it for explain(). */
+const GAME_ERRORS: Abi = (() => {
+  const seen = new Set<string>();
+  const out: AbiError[] = [];
+  for (const abi of [ABI.villages, ABI.army, ABI.clans, ABI.ledger, ABI.rules]) {
+    for (const x of abi) {
+      if (x.type !== "error") continue;
+      const sig = `${x.name}(${x.inputs.map((i) => i.type).join(",")})`;
+      if (!seen.has(sig)) { seen.add(sig); out.push(x); }
+    }
+  }
+  return out;
+})();
+export const withGameErrors = (c: Contract): Abi => {
+  const own = new Set(ABI[c].filter((x) => x.type === "error").map((x) => (x as AbiError).name));
+  return [...ABI[c], ...GAME_ERRORS.filter((x) => !own.has((x as AbiError).name))];
+};
 
 export function TxProvider({ children }: { children: ReactNode }) {
   const [txs, setTxs] = useState<TxState[]>([]);
@@ -26,9 +47,10 @@ export function TxProvider({ children }: { children: ReactNode }) {
       try { await switchToSepolia(); } catch (e) { put({ id, label, phase: "reverted", note: explain(e) }); return false; }
     }
     const req = { address: (ADDR as any)[c], abi: ABI[c], functionName: fn, args, account: address } as const;
+    const sim = { ...req, abi: withGameErrors(c) };
     try {
       put({ id, label, phase: "wallet", note: "Checking the action, then confirm in your wallet." });
-      await client.simulateContract(req as any);
+      await client.simulateContract(sim as any);
       const hash = await writeContract(wagmiConfig, { ...(req as any), chainId: chain.id });
       put({ id, label, phase: "pending", hash });
       const r = await client.waitForTransactionReceipt({ hash, timeout: 300_000 });
@@ -38,7 +60,7 @@ export function TxProvider({ children }: { children: ReactNode }) {
         return true;
       }
       let note = "The transaction reverted on chain.";
-      try { await client.simulateContract({ ...(req as any), blockNumber: r.blockNumber }); } catch (e) { note = explain(e); }
+      try { await client.simulateContract({ ...(sim as any), blockNumber: r.blockNumber }); } catch (e) { note = explain(e); }
       put({ id, label, phase: "reverted", hash, note });
     } catch (e) {
       put({ id, label, phase: "reverted", note: explain(e) });
