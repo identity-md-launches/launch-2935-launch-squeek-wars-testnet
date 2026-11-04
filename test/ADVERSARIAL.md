@@ -61,6 +61,12 @@ one-call, five-constructor graph with the brief's endpoints and an explicit test
 
 ## Checked results (2026-11-04)
 
+These figures were measured before the `_refreshCamp` repair (`ADAPTATION.md`, finding `b93138d9…`) and
+have not been re-measured here. That repair is why they differ from `docs/VALIDATION.md`, which records
+Army 19,180, combined 51,349 and an estimate of 89,836,861 gas, and is the record to use for the launch.
+By reading the code only: none of the tests added here resolves a camp raid, so the repair should not
+touch them, but no `forge` run on the repaired source backs that.
+
 `forge build --sizes` passed. Both the repository-default test run and the explicit assignment-seed
 run passed **153 reported checks across 25 suites, with zero failures and zero skips**. This adds
 20 reported checks to the accepted implementation's 133. Forge groups the two new invariant
