@@ -31,7 +31,7 @@ Deploy these five contracts, in this order, in the launch's single factory trans
 
 `$owner` is resolved by the launch service to the paying wallet or the owner the request names; write it as `$owner`, not as a literal address. Only SeedLedger has an owner; it is always the explicit argument, never the deploying factory or transaction origin. The other four contracts are ownerless. Deployments must reference the same GameRules, SeedLedger, and Clans instances in both Army and Villages. There are no post-deployment module-wiring calls.
 
-The existing `launch.json` preserves these parameters and was not rewritten by this adaptation. No transaction was broadcast. No launch token, distributor, or pool is needed. The size adaptation reaches **51,368 combined runtime bytes**, with a conservative local launch estimate of **89,870,111 gas**; [ADAPTATION.md](ADAPTATION.md) lists the changes and audit disposition.
+The existing `launch.json` preserves these parameters and was not rewritten by this adaptation. No transaction was broadcast. No launch token, distributor, or pool is needed. The size adaptation reaches **51,349 combined runtime bytes**, with a conservative local launch estimate of **89,836,861 gas**; [ADAPTATION.md](ADAPTATION.md) lists the changes and audit disposition.
 
 ## Architecture and authorization
 

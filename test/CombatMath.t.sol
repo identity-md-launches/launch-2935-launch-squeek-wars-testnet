@@ -195,6 +195,39 @@ contract CombatMathTest is GameTest {
         assertEq(army.report(address(world), second).defenderLostValue, 0);
     }
 
+    /// Review finding b93138d9: a scouts-only raid (attack 0, no damage) must not freeze the camp's
+    /// defense at the day of first contact; an undamaged camp defends with the current day's value.
+    function testScoutOnlyRaidDoesNotFreezeCampDefense() public {
+        uint16 destination = game.campTile(0);
+        world.configure(alice, G.Context(true, destination + 1, 10, 10, 10, 10, 5, 4_000_000, 0));
+        _stack(alice, 6, 1);
+        _stack(alice, 0, 10);
+        uint32[7] memory scouts;
+        scouts[6] = 1;
+        uint256 scout = world.send(alice, address(0), scouts, false);
+        vm.warp(army.movement(address(world), scout).arriveAt);
+        army.resolve(address(world), scout);
+        assertEq(army.report(address(world), scout).attack, 0);
+        (uint256 firstDefense,) = army.campParameters(0);
+        assertEq(army.camp(address(world), 0).defense, firstDefense);
+        assertEq(army.camp(address(world), 0).regrowAt, 0);
+
+        vm.warp(vm.getBlockTimestamp() + 60 days);
+        (uint256 laterDefense,) = army.campParameters(0);
+        assertGt(laterDefense, firstDefense);
+        uint32[7] memory units;
+        units[0] = 10;
+        uint256 raid = world.send(alice, address(0), units, false);
+        vm.warp(army.movement(address(world), raid).arriveAt);
+        army.resolve(address(world), raid);
+        Army.Report memory r = army.report(address(world), raid);
+        assertEq(r.defense, laterDefense);
+        assertFalse(r.decisive);
+        // The damaging raid arms regrowth; a pending deadline is still not reset by later contact.
+        assertEq(army.camp(address(world), 0).regrowAt, vm.getBlockTimestamp() + 24 hours);
+        assertEq(army.camp(address(world), 0).defense, laterDefense - r.attack / 2);
+    }
+
     function testCampDayChangesAtFourUTC() public {
         (uint256 defense, uint256 rate) = army.campParameters(1);
         assertEq(defense, 150);

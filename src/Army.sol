@@ -749,7 +749,7 @@ contract Army is Guard {
             c.lastStock = uint64(seasonStartedAt);
             c.defense = defense;
         }
-        if (c.regrowAt != 0 && block.timestamp >= c.regrowAt) {
+        if (block.timestamp >= c.regrowAt) {
             c.defense = defense;
             c.regrowAt = 0;
         }

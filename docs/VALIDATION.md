@@ -24,7 +24,7 @@ Each full run exercises twelve parameterized fuzz tests: eight at 256 inputs, tw
 | `Rules.t.sol` | Numeric quote checks, all maximum levels/units, invalid inputs, exhaustive 10,000-tile permutation, camp separation, distance, capacity monotonicity fuzz, 30% NFT reduction bound fuzz |
 | `Villages.t.sol` | Founding/name rules, map allocation, two build slots, plot reservations, cancel refunds, queue replay, research prerequisites/counters, production and fractional-settlement fuzz, storage, Market burn/cap rollback, treasury duration/cooldown and no-charge refusal under a longer shield, NFT order snapshots, reader failure rollback, callback access control, ETH rejection |
 | `Army.t.sol` | Training reservations/upkeep, unlock/room limits, return replay, troop/champion locking, shield changes in flight, raid limits, current NFT stats, point caps, recoverable settlement failure, loot/Vault conservation, low-TH treatment, scouts, camp regrowth/caps, Catapult damage/repair, maximum canonical army |
-| `CombatMath.t.sol` | Independent integer casualty reference fuzz to one million troops per side, mixed-army whole-army rounding fuzz and the lone-stack regression, zero-attack handling, callback reentrancy, NFT transfer during travel, empty-camp deadline regression, 04:00 UTC camp day |
+| `CombatMath.t.sol` | Independent integer casualty reference fuzz to one million troops per side, mixed-army whole-army rounding fuzz and the lone-stack regression, zero-attack handling, callback reentrancy, NFT transfer during travel, empty-camp deadline regression, scouts-only raid cannot freeze camp defense, 04:00 UTC camp day |
 | `Clans.t.sol` | Found/invite/join/leave prerequisites, uninvited join refused and cannot cancel a raid, founder-only and revocable invitations, capacity, founder controls, no friendly raids, troop-only support/recall, former-clan return, join during incoming attack, support losses/origin room, season/week score formula and namespace isolation |
 | `Deployment.t.sol` | Constructors with absent dependency code, explicit ownership, zero-argument rejection, all runtime sizes and reachable forbidden-opcode scan |
 | `Invariants.t.sol` | Stateful public-API actions with checkpoint/time changes, claims, builds/cancellations, research, Market, treasury, training, camps, returns, and settlement |
@@ -52,7 +52,7 @@ These checks are implementation evidence, not a formal proof or an independent s
 
 The incoming code passed **118 reported checks** before adaptation. Adding the empty-support regression to that source reproduced the audit finding: `testSupportDefendsAndLossesReleaseOriginsRoom` failed with `5 != 4` because the empty movement remained stationed. No original test was removed.
 
-The final `forge test` run passed **133 reported checks across 20 suites, zero failures and zero skipped**, including all ten invariant properties. The explicit assignment-seed run also passed **133 checks, zero failures and zero skipped**. Both campaigns retained the run/depth settings above. `forge build`, `forge build --sizes`, `forge fmt --check`, and `python3 tools/export_abi.py --check` exited successfully. The build still reports advisory Forge lint warnings; no lint suppressions or build settings were added.
+The final `forge test` run passed **134 reported checks across 20 suites, zero failures and zero skipped**, including all ten invariant properties. The explicit assignment-seed run also passed **134 checks, zero failures and zero skipped**. Both campaigns retained the run/depth settings above. `forge build`, `forge build --sizes`, `forge fmt --check`, and `python3 tools/export_abi.py --check` exited successfully. The build still reports advisory Forge lint warnings; no lint suppressions or build settings were added.
 
 The five application ABI exports were regenerated from the final build. Comparing them with the incoming exports after excluding only `error` entries found **identical constructors, functions and events**, including mutability and tuple fields. All module bindings remain Solidity `immutable`; storage declarations/layouts remain unchanged. `launch.json` and `foundry.toml` compare byte-for-byte with their incoming copies. No dependencies or protected paths were edited.
 
@@ -65,11 +65,11 @@ Only the five applications named in the existing manifest are summed. Libraries 
 | GameRules | 5,717 | 4,225 | 4,251 | 0 |
 | SeedLedger | 6,078 | 5,770 | 6,064 | 96 |
 | Clans | 5,660 | 5,084 | 5,130 | 0 |
-| Army | 23,644 | 19,199 | 19,532 | 96 |
+| Army | 23,644 | 19,180 | 19,513 | 96 |
 | Villages | 20,583 | 17,090 | 17,562 | 128 |
-| **Combined** | **61,682** | **51,368** | **52,539** | **320** |
+| **Combined** | **61,682** | **51,349** | **52,520** | **320** |
 
-Runtime decreased by **10,314 bytes (16.72%)**, leaving **632 bytes** under the combined 52,000-byte cap. Each application is below EIP-170's 24,576-byte runtime limit and EIP-3860's 49,152-byte initcode limit including arguments. The cap on initcode applies per contract, not to their sum. No application has an external-library link reference. The original deployment test scans every instantiated runtime for the protected floor's forbidden reachable opcodes; the constructor tests still deploy successfully with absent dependency code.
+Runtime decreased by **10,333 bytes (16.75%)**, leaving **651 bytes** under the combined 52,000-byte cap. Each application is below EIP-170's 24,576-byte runtime limit and EIP-3860's 49,152-byte initcode limit including arguments. The cap on initcode applies per contract, not to their sum. No application has an external-library link reference. The original deployment test scans every instantiated runtime for the protected floor's forbidden reachable opcodes; the constructor tests still deploy successfully with absent dependency code.
 
 ### Estimated launch gas
 
@@ -79,13 +79,13 @@ The project targets Cancun, which locally accounts for 200 gas per deposited run
 
 | Component | Gas |
 | --- | ---: |
-| Measured local CREATE2 execution, including all five constructors and ordinary code deposit | 11,444,055 |
-| Additional code-deposit charge: `51,368 × (1,700 − 200)` | 77,052,000 |
+| Measured local CREATE2 execution, including all five constructors and ordinary code deposit | 11,439,817 |
+| Additional code-deposit charge: `51,349 × (1,700 − 200)` | 77,023,500 |
 | Transaction intrinsic gas | 21,000 |
-| All-nonzero calldata upper bound: `53,316 bytes × 16` | 853,056 |
+| All-nonzero calldata upper bound: `53,284 bytes × 16` | 852,544 |
 | Additional factory allowance | 500,000 |
-| **Estimated total** | **89,870,111** |
+| **Estimated total** | **89,836,861** |
 
-This is **129,889 gas below 90,000,000**, including the allowance, and **10,032,233 gas below the brief's quoted 99,902,344 cap**. The test asserts both the runtime and gas budgets so a source change cannot silently exceed them.
+This is **163,139 gas below 90,000,000**, including the allowance, and **10,065,483 gas below the brief's quoted 99,902,344 cap**. The test asserts both the runtime and gas budgets so a source change cannot silently exceed them.
 
 This is a reproducible local estimate under the brief's gas-price assumption, not a broadcast or a fresh Sepolia simulation. The deployment service must apply its actual factory overhead, then-current chain gas schedule/cap and final admission preflight. The exact current live endpoints and their upstream upgradeability were not reverified here; the input audit's live observations and their local reproductions are distinguished in [ADAPTATION.md](../ADAPTATION.md).
