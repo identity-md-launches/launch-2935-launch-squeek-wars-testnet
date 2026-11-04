@@ -1,0 +1,1263 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "rules_",
+        "type": "address",
+        "internalType": "contract GameRules"
+      },
+      {
+        "name": "ledger_",
+        "type": "address",
+        "internalType": "contract SeedLedger"
+      },
+      {
+        "name": "clans_",
+        "type": "address",
+        "internalType": "contract Clans"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "MAX_SUPPORT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_XP",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "UNIT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "allocate",
+    "inputs": [
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "might",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "attack",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "defense",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "carry",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "allocatedRoom",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "camp",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Army.Camp",
+        "components": [
+          {
+            "name": "initialized",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "regrowAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lastStock",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "defense",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "stock",
+            "type": "uint256[4]",
+            "internalType": "uint256[4]"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "campParameters",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "defense",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "hourlyStock",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "champion",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Army.Champion",
+        "components": [
+          {
+            "name": "xp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "might",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "attack",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "defense",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "carry",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "away",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "championLevel",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "championStats",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "might",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "attackBonus",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "defenseBonus",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "carryBonus",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "clans",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract Clans"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "completeTraining",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "creditXP",
+    "inputs": [
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "home",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32[7]",
+        "internalType": "uint32[7]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ledger",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract SeedLedger"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "movement",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Army.Movement",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "target",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "campId",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "mode",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "champion",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "arriveAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "travelTime",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "units",
+            "type": "uint32[7]",
+            "internalType": "uint32[7]"
+          },
+          {
+            "name": "loot",
+            "type": "uint256[4]",
+            "internalType": "uint256[4]"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "movementCount",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "recall",
+    "inputs": [
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "report",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Army.Report",
+        "components": [
+          {
+            "name": "resolvedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "attack",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "defense",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "attackerLostValue",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "defenderLostValue",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "loot",
+            "type": "uint256[4]",
+            "internalType": "uint256[4]"
+          },
+          {
+            "name": "decisive",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "cancelled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "resolve",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "returnFormerSupport",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "rules",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract GameRules"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "scoutedUntil",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "seasonStartedAt",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "send",
+    "inputs": [
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "campId",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "units",
+        "type": "uint32[7]",
+        "internalType": "uint32[7]"
+      },
+      {
+        "name": "withChampion",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "mode",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "supportMovements",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "train",
+    "inputs": [
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "count",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "training",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "who",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Army.Training",
+        "components": [
+          {
+            "name": "kind",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "count",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "readyAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "travelTime",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "to",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "speed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "event",
+    "name": "Battle",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "attack",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "defense",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "attackerLost",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "defenderLost",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "decisive",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ChampionAllocated",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "might",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "attack",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "defense",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "carry",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ChampionXP",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "added",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "total",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MovementResolved",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "mode",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "nextArrival",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MovementSent",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "target",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "campId",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "mode",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "arriveAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Scouted",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "target",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "success",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "until",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TrainingCompleted",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TrainingOrdered",
+    "inputs": [
+      {
+        "name": "game",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "readyAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "CannotRecallSupport",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ChampionAway",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DailyRaidLimit",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientBurrowRoom",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientChampionPoints",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientTroops",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCamp",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCampMovement",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidDependency",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidMovement",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSupport",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTravel",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTroopCount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingSupport",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingTarget",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingVillage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MovementNotArrived",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyScoutsReconnoitre",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PointsCannotBeReassigned",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "Reentrancy",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ScoutsTravelAlone",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StatCap",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SupportStillAllied",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TargetProtected",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TrainingBusyOrMissingVillage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TrainingNotReady",
+    "inputs": []
+  }
+]

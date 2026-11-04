@@ -1,0 +1,86 @@
+import { BaseError, ContractFunctionRevertedError, UserRejectedRequestError } from "viem";
+
+const PLAIN: Record<string, string> = {
+  AcademyTooLow: "Your Academy level is too low for that research tier.",
+  AlreadyBuildingTarget: "That field or building is already being upgraded in the other slot.",
+  AlreadyInClan: "You are already in a clan. Leave it first.",
+  AlreadyRegisteredOrInvalidPlayer: "This wallet is already registered.",
+  BannerAlreadyOwned: "You already own the banner.",
+  BoostActiveOrInvalidResource: "An output boost is still running. Wait until it ends.",
+  BuildingCappedByTownHall: "Upgrade your Town Hall first: buildings cannot pass its level.",
+  CannotCancelCompletedBuild: "That build is already ready, so it can only be finished, not cancelled.",
+  CannotJoin: "You cannot join that clan. You need Clan Hall 1 and no current clan.",
+  CannotRaiseCapacity: "Clan capacity is already at the level your Clan Hall allows.",
+  CannotRecallSupport: "Only the sender or the host can recall this support, and only while it is stationed.",
+  ChampionAway: "Your champion is away with another movement.",
+  ClanHall3Required: "Founding a clan needs Clan Hall level 3.",
+  ClanFullOrMissing: "That clan is full or no longer exists.",
+  ClanNameTaken: "That clan name is taken.",
+  DailyRaidLimit: "You already raided this target three times today. Try after 04:00 UTC.",
+  FieldCappedByTownHall: "Upgrade your Town Hall first: fields cannot pass its level.",
+  FounderLeavesLast: "The founder leaves last. Other members must leave first.",
+  InsufficientBurrowRoom: "Not enough Burrow room. Upgrade the Burrow or train fewer troops.",
+  InsufficientChampionPoints: "Not enough free champion points.",
+  InsufficientResources: "Not enough resources in storage.",
+  InsufficientSeed: "Not enough SEED.",
+  InsufficientStorage: "Your storage cannot hold the result. Upgrade the Storehouse or trade fewer lots.",
+  InsufficientTroops: "You do not have that many troops at home.",
+  InvalidAction: "This wallet already has a village, or the map is full.",
+  InvalidBuildSlot: "That build slot is busy.",
+  InvalidCamp: "That camp does not exist.",
+  InvalidCampMovement: "Camps can only be raided.",
+  InvalidExchange: "That exchange is not allowed. Pick a different output resource.",
+  InvalidMovement: "That movement cannot be resolved or recalled right now.",
+  InvalidNameCharacter: "Names use only letters, digits and underscore.",
+  InvalidNameLength: "Names are 3 to 16 characters (clans 3 to 24).",
+  InvalidSupport: "Support goes only to a clanmate, one contingent at a time.",
+  InvalidTravel: "That target is not reachable.",
+  InvalidTroopCount: "Pick at least one troop.",
+  InvalidTraining: "That unit cannot be trained yet.",
+  InvalidUnit: "That unit does not exist.",
+  MarketRequired: "Build a Market first.",
+  MaxLevel: "That is already at its maximum level.",
+  MissingSupport: "No support from you is stationed there.",
+  MissingTarget: "That target has no village.",
+  MissingVillage: "That wallet has no village.",
+  MovementNotArrived: "The movement has not arrived yet.",
+  NameTaken: "That name is taken.",
+  NoClaim: "Nothing to claim yet. Wait for the next checkpoint.",
+  NoPlotAvailable: "No free building plot. Upgrade the Town Hall for more plots.",
+  NotInClan: "You are not in a clan.",
+  NotInvited: "You need an invitation from that clan's founder.",
+  NoVillage: "This wallet has no village yet.",
+  NotReady: "It is not ready yet. Wait for the countdown.",
+  OnlyFounderInvites: "Only the clan founder can invite.",
+  OnlyScoutsReconnoitre: "Scouting missions take only Scouts.",
+  PeaceCooldown: "A peace shield can be bought once every three days.",
+  PointsCannotBeReassigned: "Champion points only go up; they cannot be moved.",
+  ResearchBusy: "Research is already running.",
+  ResearchRequired: "Research the tier that unlocks this first.",
+  ResearchTier2First: "Research tier 2 first.",
+  ResearchVaultFirst: "Research tier 1 first to unlock the Vault.",
+  ScoutsTravelAlone: "Scouts travel alone on scouting missions; the champion stays home.",
+  ShieldAlreadyActive: "A shield at least as long is already running.",
+  StatCap: "That stat is at its cap of 20 points.",
+  SupportStillAllied: "That support is still allied; only its sender or host can recall it.",
+  TargetProtected: "That village is protected by a shield or is a clanmate.",
+  TrainingBusyOrMissingVillage: "Training is already running. Finish it first.",
+  TrainingNotReady: "Training is not finished yet.",
+  AlreadyCheckpointed: "Today's checkpoint is already recorded.",
+  WorkDecreased: "Squeekchain's work counter read lower than before; checkpoints are paused until the owner rebaselines.",
+  ExternalReadFailed: "Squeekchain could not be read right now. Try again later.",
+  Reentrancy: "The call was blocked as re-entrant.",
+  Unauthorized: "Not allowed for this wallet.",
+};
+
+export function explain(e: unknown): string {
+  if (e instanceof BaseError) {
+    if (e.walk((x) => x instanceof UserRejectedRequestError)) return "You rejected the request in your wallet.";
+    const rev = e.walk((x) => x instanceof ContractFunctionRevertedError) as ContractFunctionRevertedError | null;
+    const name = rev?.data?.errorName;
+    if (name) return `${PLAIN[name] ?? "The contract refused this action."} (${name})`;
+    if (/insufficient funds/i.test(e.message)) return "Your wallet needs Sepolia ETH for gas. Use a Sepolia faucet.";
+    return e.shortMessage || e.message;
+  }
+  return e instanceof Error ? e.message : String(e);
+}
